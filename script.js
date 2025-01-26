@@ -45,25 +45,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function checkLoan() {
-        // Replace with the actual API endpoint and your API key if needed
-        const apiUrl = 'https://dash.tycoon.community/wiki/index.php/API';
+    async function checkLoan() {
+        const apiUrl = 'https://api.tycoon.community/loans'; // Replace with the actual API endpoint
+        const playerId = 'YOUR_PLAYER_ID'; // Replace with the player's ID or session token
 
-        fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-                if (data.loan) {
-                    loanStatus.innerHTML = `
-                        <div class="loanName">${data.loan.name}</div>
-                        <div class="loanAmount">${data.loan.amount}</div>
-                    `;
-                } else {
-                    loanStatus.textContent = 'No Loan';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching loan data:', error);
-                loanStatus.textContent = 'Error';
-            });
+        try {
+            const response = await fetch(`${apiUrl}?playerId=${playerId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch loan data');
+            }
+
+            const data = await response.json();
+
+            if (data.loan) {
+                loanStatus.innerHTML = `
+                    <div class="loanName">${data.loan.name}</div>
+                    <div class="loanAmount">$${data.loan.amount}</div>
+                `;
+            } else {
+                loanStatus.textContent = 'No Loan';
+            }
+        } catch (error) {
+            console.error('Error fetching loan data:', error);
+            loanStatus.textContent = 'Error: Unable to fetch data';
+        }
     }
 });
