@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkLoanButton = document.getElementById('checkLoanButton');
     const loanStatus = document.getElementById('loanStatus');
     const closeButton = document.getElementById('closeButton');
+    const playerIdInput = document.getElementById('playerIdInput');
 
     let isDragging = false;
     let offsetX, offsetY;
@@ -39,15 +40,19 @@ document.addEventListener('DOMContentLoaded', function() {
             intervalId = null;
             checkLoanButton.textContent = 'Check Loan';
         } else {
-            checkLoan();
-            intervalId = setInterval(checkLoan, 3000);
+            const playerId = playerIdInput.value.trim();
+            if (!playerId) {
+                loanStatus.textContent = 'Please enter Player ID';
+                return;
+            }
+            checkLoan(playerId);
+            intervalId = setInterval(() => checkLoan(playerId), 3000);
             checkLoanButton.textContent = 'Pause';
         }
     });
 
-    async function checkLoan() {
+    async function checkLoan(playerId) {
         const apiUrl = 'https://api.tycoon.community/loans'; // Replace with the actual API endpoint
-        const playerId = 'YOUR_PLAYER_ID'; // Replace with the player's ID or session token
 
         try {
             const response = await fetch(`${apiUrl}?playerId=${playerId}`);
