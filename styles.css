@@ -2,28 +2,31 @@ body {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
+    background: transparent;
 }
 
 #loanCheckerWindow {
     position: absolute;
     top: 50px;
     left: 50px;
-    width: 200px;
-    height: 150px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border: 1px solid #ccc;
+    width: 250px;
+    height: 200px;
+    background-color: rgba(40, 40, 40, 0.9); /* Darker background */
+    border: 1px solid #555;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     overflow: hidden;
     resize: both;
+    color: white;
 }
 
 #loanCheckerHeader {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.2);
     padding: 5px;
     cursor: move;
     text-align: center;
     font-weight: bold;
+    border-bottom: 1px solid #555;
 }
 
 #closeButton {
@@ -31,11 +34,22 @@ body {
     background: none;
     border: none;
     cursor: pointer;
+    color: white;
 }
 
 #loanCheckerContent {
     padding: 10px;
     text-align: center;
+}
+
+#playerIdInput {
+    width: 90%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 #checkLoanButton {
@@ -45,6 +59,11 @@ body {
     padding: 10px;
     cursor: pointer;
     border-radius: 5px;
+    width: 90%;
+}
+
+#checkLoanButton:hover {
+    background-color: darkgreen;
 }
 
 #loanStatus {
