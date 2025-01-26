@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkLoanButton = document.getElementById('checkLoanButton');
     const loanStatus = document.getElementById('loanStatus');
     const closeButton = document.getElementById('closeButton');
+    const apiKeyInput = document.getElementById('apiKeyInput');
     const playerIdInput = document.getElementById('playerIdInput');
 
     let isDragging = false;
@@ -40,22 +41,30 @@ document.addEventListener('DOMContentLoaded', function() {
             intervalId = null;
             checkLoanButton.textContent = 'Check Loan';
         } else {
+            const apiKey = apiKeyInput.value.trim();
             const playerId = playerIdInput.value.trim();
-            if (!playerId) {
-                loanStatus.textContent = 'Please enter Player ID';
+
+            if (!apiKey || !playerId) {
+                loanStatus.textContent = 'Please enter API Key and Player ID';
                 return;
             }
-            checkLoan(playerId);
-            intervalId = setInterval(() => checkLoan(playerId), 3000);
+
+            checkLoan(apiKey, playerId);
+            intervalId = setInterval(() => checkLoan(apiKey, playerId), 3000);
             checkLoanButton.textContent = 'Pause';
         }
     });
 
-    async function checkLoan(playerId) {
+    async function checkLoan(apiKey, playerId) {
         const apiUrl = 'https://api.tycoon.community/loans'; // Replace with the actual API endpoint
 
         try {
-            const response = await fetch(`${apiUrl}?playerId=${playerId}`);
+            const response = await fetch(`${apiUrl}?playerId=${playerId}`, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}` // Add API key to the request headers
+                }
+            });
+
             if (!response.ok) {
                 throw new Error('Failed to fetch loan data');
             }
