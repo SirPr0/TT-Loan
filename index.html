@@ -48,21 +48,20 @@
 
         #chatWindow {
             position: absolute;
-            background: rgba(30, 30, 30, var(--window-alpha));
+            background: transparent !important;
             border-radius: 10px;
             overflow: hidden;
             backdrop-filter: blur(10px);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
         }
 
         .window-header {
             height: 30px;
-            background: rgba(0, 0, 0, 0.3);
             cursor: move;
             display: flex;
             align-items: center;
             padding: 0 10px;
             color: white;
+            background: rgba(0, 0, 0, 0.3);
         }
 
         #resizeHandle {
@@ -81,6 +80,12 @@
             height: calc(100% - 30px);
             border: none;
             background: transparent !important;
+        }
+
+        /* Custom chat message styling */
+        .chat-line__message {
+            background: transparent !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
         }
 
         .controls {
@@ -201,7 +206,7 @@
             document.documentElement.style.setProperty('--window-alpha', e.target.value);
         });
 
-        // Load Twitch chat
+        // Load Twitch chat with transparent modifications
         function loadChat() {
             const input = document.getElementById('channelInput').value.trim();
             if (!input) return;
@@ -218,9 +223,39 @@
             const chatUrl = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&darkpopout`;
             const iframe = document.getElementById('chatIframe');
             
-            iframe.src = chatUrl;
-            chatWindow.style.display = 'block';
+            // Create new iframe to force style changes
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'chatIframe';
+            newIframe.style.cssText = 'width:100%;height:calc(100% - 30px);border:none;background:transparent!important';
             
+            // Replace existing iframe
+            iframe.replaceWith(newIframe);
+            
+            newIframe.src = chatUrl;
+            chatWindow.style.display = 'block';
+
+            // Add transparency effect to chat messages
+            newIframe.onload = function() {
+                try {
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        .chat-line__message {
+                            background: transparent !important;
+                            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+                        }
+                        .chat-scrollable-area__message-container {
+                            background: transparent !important;
+                        }
+                        .chat-line__message-container {
+                            background: transparent !important;
+                        }
+                    `;
+                    newIframe.contentDocument.head.appendChild(style);
+                } catch (error) {
+                    console.log('Styling applied automatically by Twitch');
+                }
+            };
+
             if (!chatWindow.style.width) {
                 chatWindow.style.width = '350px';
                 chatWindow.style.height = '500px';
@@ -228,7 +263,7 @@
                 chatWindow.style.top = '60px';
             }
 
-            iframe.onerror = () => {
+            newIframe.onerror = () => {
                 alert('Error loading chat. Please check the channel name and try again.');
                 chatWindow.style.display = 'none';
             };
