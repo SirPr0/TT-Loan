@@ -80,6 +80,7 @@
             width: 100%;
             height: calc(100% - 30px);
             border: none;
+            background: transparent !important;
         }
 
         .controls {
@@ -214,7 +215,7 @@
 
             channel = channel.replace(/[^a-zA-Z0-9_]/g, '');
 
-            const chatUrl = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}`;
+            const chatUrl = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&darkpopout`;
             const iframe = document.getElementById('chatIframe');
             
             iframe.src = chatUrl;
