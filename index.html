@@ -3,6 +3,10 @@
 <head>
     <title>Transparent Twitch Chat</title>
     <style>
+        :root {
+            --window-alpha: 0.9;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -11,51 +15,54 @@
             font-family: Arial, sans-serif;
         }
 
-        #inputBar {
+        #settingsBtn {
             position: fixed;
             top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 10px;
             z-index: 1000;
+            background: rgba(40, 40, 40, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        #settingsPanel {
+            position: fixed;
+            top: 50px;
+            right: -300px;
+            width: 280px;
             background: rgba(40, 40, 40, 0.9);
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            gap: 10px;
+            padding: 20px;
+            border-radius: 10px;
+            transition: 0.3s;
             backdrop-filter: blur(10px);
         }
 
-        #channelInput {
-            width: 300px;
-            padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            border-radius: 5px;
-            outline: none;
-        }
-
-        #loadButton {
-            background: #6441a5;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        #loadButton:hover {
-            background: #7d5bbe;
+        #settingsPanel.active {
+            right: 10px;
         }
 
         #chatWindow {
             position: absolute;
-            background: rgba(30, 30, 30, 0.9);
+            background: rgba(30, 30, 30, var(--window-alpha));
             border-radius: 10px;
             overflow: hidden;
             backdrop-filter: blur(10px);
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .window-header {
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            cursor: move;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            color: white;
         }
 
         #resizeHandle {
@@ -71,8 +78,39 @@
 
         #chatIframe {
             width: 100%;
-            height: calc(100% - 5px);
+            height: calc(100% - 30px);
             border: none;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 5px;
+        }
+
+        button {
+            background: #6441a5;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .transparency-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
         }
 
         ::-webkit-scrollbar {
@@ -87,12 +125,21 @@
     </style>
 </head>
 <body>
-    <div id="inputBar">
-        <input type="text" id="channelInput" placeholder="Enter Twitch channel name or URL">
-        <button id="loadButton" onclick="loadChat()">Load Chat</button>
+    <button id="settingsBtn">⚙️</button>
+    
+    <div id="settingsPanel">
+        <div class="controls">
+            <input type="text" id="channelInput" placeholder="Twitch channel name or URL">
+            <button onclick="loadChat()">Load Chat</button>
+            <div class="transparency-control">
+                <label>Transparency:</label>
+                <input type="range" id="alphaSlider" min="0" max="1" step="0.1" value="0.9">
+            </div>
+        </div>
     </div>
 
     <div id="chatWindow" style="display: none;">
+        <div class="window-header">Twitch Chat</div>
         <iframe id="chatIframe"></iframe>
         <div id="resizeHandle"></div>
     </div>
@@ -104,18 +151,16 @@
         let isResizing = false;
         let initialX, initialY, initialWidth, initialHeight;
 
-        chatWindow.addEventListener('mousedown', startDrag);
+        document.querySelector('.window-header').addEventListener('mousedown', startDrag);
         document.addEventListener('mousemove', handleMove);
         document.addEventListener('mouseup', stopDrag);
 
         document.getElementById('resizeHandle').addEventListener('mousedown', startResize);
         
         function startDrag(e) {
-            if (e.target === chatWindow) {
-                isDragging = true;
-                initialX = e.clientX - chatWindow.offsetLeft;
-                initialY = e.clientY - chatWindow.offsetTop;
-            }
+            isDragging = true;
+            initialX = e.clientX - chatWindow.offsetLeft;
+            initialY = e.clientY - chatWindow.offsetTop;
         }
 
         function handleMove(e) {
@@ -145,6 +190,16 @@
             e.preventDefault();
         }
 
+        // Settings panel toggle
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.toggle('active');
+        });
+
+        // Transparency control
+        document.getElementById('alphaSlider').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--window-alpha', e.target.value);
+        });
+
         // Load Twitch chat
         function loadChat() {
             const input = document.getElementById('channelInput').value.trim();
@@ -152,13 +207,11 @@
 
             let channel = input;
             
-            // Extract channel name from URL if provided
             if (input.includes('twitch.tv/')) {
                 const urlParts = input.split('/');
                 channel = urlParts[urlParts.length - 1].split('?')[0];
             }
 
-            // Sanitize channel name
             channel = channel.replace(/[^a-zA-Z0-9_]/g, '');
 
             const chatUrl = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}`;
@@ -167,7 +220,6 @@
             iframe.src = chatUrl;
             chatWindow.style.display = 'block';
             
-            // Set initial size and position if not set
             if (!chatWindow.style.width) {
                 chatWindow.style.width = '350px';
                 chatWindow.style.height = '500px';
@@ -175,14 +227,13 @@
                 chatWindow.style.top = '60px';
             }
 
-            // Handle iframe load errors
             iframe.onerror = () => {
                 alert('Error loading chat. Please check the channel name and try again.');
                 chatWindow.style.display = 'none';
             };
         }
 
-        // Enter key support for input
+        // Enter key support
         document.getElementById('channelInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') loadChat();
         });
