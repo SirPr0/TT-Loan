@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Floating Window */
+        #floatingWindow {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            width: 450px;
+            height: 350px;
+            background: rgba(20, 20, 30, 0.92);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(100, 100, 150, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+            color: #e0e0ff;
+            z-index: 10000;
+            overflow: hidden;
+            resize: both;
+            min-width: 400px;
+            min-height: 300px;
+            max-width: 800px;
+            max-height: 600px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        #floatingWindow:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6),
+                        0 0 0 1px rgba(255, 255, 255, 0.15);
+        }
+
+        /* Window Header */
+        .window-header {
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid rgba(100, 100, 150, 0.3);
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .window-title i {
+            color: #4a6fa5;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: #a0a0c0;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Window Content */
+        .window-content {
+            height: calc(100% - 40px);
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: #2ecc71;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #e74c3c;
+        }
+
+        .status-dot.loading {
+            background: #f39c12;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Loan Stats */
+        .loan-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(30, 30, 40, 0.8);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #a0a0c0;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .loan .stat-value {
+            color: #e74c3c;
+        }
+
+        .paid .stat-value {
+            color: #2ecc71;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .progress-fill.low {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #f39c12, #d35400);
+        }
+
+        /* Server Selector */
+        .server-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .server-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 100, 150, 0.3);
+            border-radius: 6px;
+            color: #e0e0ff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .server-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .server-btn.active {
+            background: #4a6fa5;
+            border-color: #4a6fa5;
+        }
+
+        /* API Form */
+        .api-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: #a0a0c0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 100, 150, 0.3);
+            border-radius: 6px;
+            color: #e0e0ff;
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4a6fa5;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: #4a6fa5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #166088;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0ff;
+            border: 1px solid rgba(100, 100, 150, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: rgba(30, 30, 40, 0.95);
+            border: 1px solid rgba(100, 100, 150, 0.4);
+            border-radius: 8px;
+            color: white;
+            z-index: 10001;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            font-size: 0.9rem;
+        }
+
+        .notification.warning {
+            background: rgba(243, 156, 18, 0.95);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Resize Handle */
+        #floatingWindow::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, transparent 50%, rgba(100, 100, 150, 0.5) 50%);
+            cursor: se-resize;
+        }
+
+        /* Scrollbar Styling */
+        .window-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .window-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .window-content::-webkit-scrollbar-thumb {
+            background: rgba(100, 100, 150, 0.5);
+            border-radius: 3px;
+        }
+
+        .window-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 100, 150, 0.7);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 300px;
+            background: rgba(20, 20, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(100, 100, 150, 0.4);
+            padding: 15px;
+            z-index: 9999;
+            display: none;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-option {
+            margin-bottom: 12px;
+        }
+
+        .settings-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .settings-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Hide window content when collapsed */
+        .collapsed .window-content {
+            display: none;
+        }
+
+        .collapsed {
+            height: 40px !important;
+            min-height: 40px !important;
+        }
+
+        /* Charge Counter */
+        .charge-counter {
+            margin-top: 5px;
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            text-align: center;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .charge-counter.warning {
+            color: #f39c12;
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .charge-counter.critical {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        /* Data Source Indicator */
+        .data-source {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-top: 5px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Small Button */
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            flex: 0 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="floatingWindow">
+        <div class="window-header" id="windowHeader">
+            <div class="window-title">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>Loan Tracker</span>
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot disconnected" id="statusDot"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn" id="settingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="control-btn" id="refreshBtn" title="Refresh Data (Uses 1 API charge)">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="control-btn" id="collapseBtn" title="Collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="window-content" id="windowContent">
+            <div class="loan-stats">
+                <div class="stat-card loan">
+                    <div class="stat-label">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Loan Balance</span>
+                    </div>
+                    <div class="stat-value" id="loanBalance">$0</div>
+                    <div class="data-source" id="loanSource"></div>
+                </div>
+                
+                <div class="stat-card paid">
+                    <div class="stat-label">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Total Paid</span>
+                    </div>
+                    <div class="stat-value" id="totalPaid">$0</div>
+                    <div class="data-source" id="paidSource"></div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Progress</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="data-source" id="progressSource"></div>
+            </div>
+
+            <div class="charge-counter" id="chargeCounter">
+                API Charges: Not checked
+            </div>
+
+            <div class="server-selector">
+                <button class="server-btn" data-server="main" data-url="https://tycoon-2epova.users.cfx.re/">
+                    Main Server
+                </button>
+                <button class="server-btn" data-server="beta" data-url="https://tycoon-njyvop.users.cfx.re/">
+                    Beta Server
+                </button>
+            </div>
+
+            <div class="api-form">
+                <div class="form-group">
+                    <label for="privateKey">
+                        <i class="fas fa-key"></i>
+                        <span>Private Key</span>
+                    </label>
+                    <input type="password" id="privateKey" placeholder="Enter private API key">
+                </div>
+
+                <div class="form-group">
+                    <label for="vRPid">
+                        <i class="fas fa-id-card"></i>
+                        <span>vRP ID</span>
+                    </label>
+                    <input type="number" id="vRPid" placeholder="Enter vRP ID">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="connectBtn">
+                        <i class="fas fa-plug"></i>
+                        Connect
+                    </button>
+                    <button class="btn btn-secondary" id="manualTrackBtn">
+                        <i class="fas fa-edit"></i>
+                        Manual Track
+                    </button>
+                    <button class="btn btn-danger" id="clearBtn">
+                        <i class="fas fa-trash"></i>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Payment Tracking Modal -->
+    <div class="settings-panel" id="manualTrackPanel" style="display: none;">
+        <h3><i class="fas fa-edit"></i> Manual Payment Tracking</h3>
+        
+        <div class="form-group">
+            <label for="originalLoan">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Original Loan Amount</span>
+            </label>
+            <input type="number" id="originalLoan" placeholder="Enter original loan amount">
+        </div>
+
+        <div class="form-group">
+            <label for="paymentAmount">
+                <i class="fas fa-money-check"></i>
+                <span>Payment Amount</span>
+            </label>
+            <input type="number" id="paymentAmount" placeholder="Enter payment amount">
+        </div>
+
+        <div class="form-group">
+            <label for="currentLoan">
+                <i class="fas fa-balance-scale"></i>
+                <span>Current Loan (Optional)</span>
+            </label>
+            <input type="number" id="currentLoan" placeholder="Enter current loan balance">
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-primary" id="savePaymentBtn">
+                <i class="fas fa-save"></i>
+                Save Payment
+            </button>
+            <button class="btn btn-secondary" id="closeManualBtn">
+                <i class="fas fa-times"></i>
+                Cancel
+            </button>
+        </div>
+
+        <div style="margin-top: 15px; font-size: 0.85rem; color: #a0a0c0;">
+            <p><strong>Note:</strong> This manually tracks your loan payments without using API charges.</p>
+            <p>Each payment reduces your estimated remaining balance.</p>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <h3><i class="fas fa-cog"></i> Settings</h3>
+        
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="autoRefresh">
+                <span>Auto-refresh (60s) - NOT RECOMMENDED</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="showCharges">
+                <span>Always show API charges</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="notifications">
+                <span>Enable Notifications</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="alwaysOnTop">
+                <span>Always on Top</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="transparency">
+                <span>Increased Transparency</span>
+            </label>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%; margin-top: 15px;" id="resetPositionBtn">
+            <i class="fas fa-undo"></i>
+            Reset Position (R Key)
+        </button>
+
+        <div style="margin-top: 15px; font-size: 0.85rem; color: #a0a0c0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+            <p><strong>API Charge Info:</strong></p>
+            <p>• Each API call costs 1 charge ($1,000 in-game)</p>
+            <p>• Check charges with: <code>/api private refill</code></p>
+            <p>• Manual tracking avoids API charges</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_SERVERS = {
+            'main': 'https://tycoon-2epova.users.cfx.re/',
+            'beta': 'https://tycoon-njyvop.users.cfx.re/'
+        };
+
+        // State variables
+        let currentServer = '';
+        let privateKey = '';
+        let vRPid = '';
+        let originalLoanAmount = 0;
+        let totalPaid = 0;
+        let lastLoanAmount = 0;
+        let apiInterval = null;
+        let isDragging = false;
+        let isCollapsed = false;
+        let dragOffset = { x: 0, y: 0 };
+        let lastFetchTime = 0;
+        let apiCharges = 0;
+
+        // DOM Elements
+        const floatingWindow = document.getElementById('floatingWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        const windowContent = document.getElementById('windowContent');
+        const connectBtn = document.getElementById('connectBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const collapseBtn = document.getElementById('collapseBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const manualTrackBtn = document.getElementById('manualTrackBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const manualTrackPanel = document.getElementById('manualTrackPanel');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const resetPositionBtn = document.getElementById('resetPositionBtn');
+        const serverButtons = document.querySelectorAll('.server-btn');
+        const savePaymentBtn = document.getElementById('savePaymentBtn');
+        const closeManualBtn = document.getElementById('closeManualBtn');
+
+        // Make window draggable
+        windowHeader.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
+
+        // Initialize
+        function init() {
+            // Load saved settings
+            loadSettings();
+            
+            // Set up server buttons
+            serverButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectServer(btn.dataset.server, btn.dataset.url);
+                });
+            });
+
+            // Set up control buttons
+            connectBtn.addEventListener('click', connectToAPI);
+            refreshBtn.addEventListener('click', fetchWithConfirmation);
+            clearBtn.addEventListener('click', clearAll);
+            collapseBtn.addEventListener('click', toggleCollapse);
+            settingsBtn.addEventListener('click', toggleSettings);
+            manualTrackBtn.addEventListener('click', toggleManualTrack);
+            resetPositionBtn.addEventListener('click', resetWindowPosition);
+            savePaymentBtn.addEventListener('click', saveManualPayment);
+            closeManualBtn.addEventListener('click', () => {
+                manualTrackPanel.style.display = 'none';
+            });
+
+            // Set up settings checkboxes
+            document.getElementById('autoRefresh').addEventListener('change', toggleAutoRefresh);
+            document.getElementById('showCharges').addEventListener('change', toggleShowCharges);
+            document.getElementById('notifications').addEventListener('change', toggleNotifications);
+            document.getElementById('alwaysOnTop').addEventListener('change', toggleAlwaysOnTop);
+            document.getElementById('transparency').addEventListener('change', toggleTransparency);
+
+            // Close panels when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsPanel.style.display = 'none';
+                }
+                if (!manualTrackPanel.contains(e.target) && !manualTrackBtn.contains(e.target)) {
+                    manualTrackPanel.style.display = 'none';
+                }
+            });
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    resetWindowPosition();
+                }
+                if (e.key === 'Escape') {
+                    settingsPanel.style.display = 'none';
+                    manualTrackPanel.style.display = 'none';
+                }
+                if (e.key === 'F5') {
+                    e.preventDefault();
+                    fetchWithConfirmation();
+                }
+            });
+
+            // Set default server
+            if (!currentServer) {
+                selectServer('main', API_SERVERS.main);
+            }
+
+            // Show estimated data on load
+            showEstimatedData();
+        }
+
+        // Drag functionality
+        function startDrag(e) {
+            if (e.target.closest('.control-btn')) return;
+            
+            isDragging = true;
+            const rect = floatingWindow.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            
+            floatingWindow.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            floatingWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+            floatingWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+            
+            saveWindowPosition();
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            floatingWindow.style.cursor = 'default';
+        }
+
+        // Save window position and size
+        function saveWindowPosition() {
+            const rect = floatingWindow.getBoundingClientRect();
+            localStorage.setItem('loanWindow_x', rect.left);
+            localStorage.setItem('loanWindow_y', rect.top);
+            localStorage.setItem('loanWindow_width', rect.width);
+            localStorage.setItem('loanWindow_height', rect.height);
+        }
+
+        // Load window position and size
+        function loadWindowPosition() {
+            const x = localStorage.getItem('loanWindow_x');
+            const y = localStorage.getItem('loanWindow_y');
+            const width = localStorage.getItem('loanWindow_width');
+            const height = localStorage.getItem('loanWindow_height');
+            
+            if (x && y) {
+                floatingWindow.style.left = x + 'px';
+                floatingWindow.style.top = y + 'px';
+            }
+            
+            if (width && height) {
+                floatingWindow.style.width = width + 'px';
+                floatingWindow.style.height = height + 'px';
+            }
+        }
+
+        // Reset window position
+        function resetWindowPosition() {
+            floatingWindow.style.left = '50px';
+            floatingWindow.style.top = '50px';
+            floatingWindow.style.width = '450px';
+            floatingWindow.style.height = '350px';
+            
+            localStorage.removeItem('loanWindow_x');
+            localStorage.removeItem('loanWindow_y');
+            localStorage.removeItem('loanWindow_width');
+            localStorage.removeItem('loanWindow_height');
+            
+            showNotification('Window position reset');
+        }
+
+        // Select server
+        function selectServer(server, url) {
+            currentServer = url;
+            
+            serverButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.server === server) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            localStorage.setItem('loanTracker_server', server);
+            localStorage.setItem('loanTracker_serverUrl', url);
+        }
+
+        // Load settings
+        function loadSettings() {
+            // Load window position
+            loadWindowPosition();
+            
+            // Load API settings
+            const savedPrivateKey = localStorage.getItem('loanTracker_privateKey');
+            const savedVRPid = localStorage.getItem('loanTracker_vRPid');
+            const savedServer = localStorage.getItem('loanTracker_server');
+            const savedServerUrl = localStorage.getItem('loanTracker_serverUrl');
+            
+            if (savedPrivateKey) {
+                document.getElementById('privateKey').value = savedPrivateKey;
+                privateKey = savedPrivateKey;
+            }
+            
+            if (savedVRPid) {
+                document.getElementById('vRPid').value = savedVRPid;
+                vRPid = savedVRPid;
+            }
+            
+            if (savedServer && savedServerUrl) {
+                selectServer(savedServer, savedServerUrl);
+            }
+            
+            // Load loan data
+            originalLoanAmount = parseFloat(localStorage.getItem('loanTracker_originalLoan') || 0);
+            totalPaid = parseFloat(localStorage.getItem('loanTracker_totalPaid') || 0);
+            lastLoanAmount = parseFloat(localStorage.getItem('loanTracker_lastLoan') || 0);
+            
+            // Load settings
+            const settings = {
+                autoRefresh: localStorage.getItem('loanTracker_autoRefresh') === 'true',
+                showCharges: localStorage.getItem('loanTracker_showCharges') === 'true',
+                notifications: localStorage.getItem('loanTracker_notifications') !== 'false',
+                alwaysOnTop: localStorage.getItem('loanTracker_alwaysOnTop') === 'true',
+                transparency: localStorage.getItem('loanTracker_transparency') === 'true'
+            };
+            
+            document.getElementById('autoRefresh').checked = settings.autoRefresh;
+            document.getElementById('showCharges').checked = settings.showCharges;
+            document.getElementById('notifications').checked = settings.notifications;
+            document.getElementById('alwaysOnTop').checked = settings.alwaysOnTop;
+            document.getElementById('transparency').checked = settings.transparency;
+            
+            // Apply settings
+            if (settings.alwaysOnTop) {
+                floatingWindow.style.zIndex = '10000';
+            }
+            if (settings.transparency) {
+                floatingWindow.style.background = 'rgba(20, 20, 30, 0.85)';
+            }
+        }
+
+        // Save settings
+        function saveSettings() {
+            localStorage.setItem('loanTracker_privateKey', privateKey);
+            localStorage.setItem('loanTracker_vRPid', vRPid);
+            localStorage.setItem('loanTracker_originalLoan', originalLoanAmount.toString());
+            localStorage.setItem('loanTracker_totalPaid', totalPaid.toString());
+            localStorage.setItem('loanTracker_lastLoan', lastLoanAmount.toString());
+        }
+
+        // Connect to API
+        async function connectToAPI() {
+            privateKey = document.getElementById('privateKey').value.trim();
+            vRPid = document.getElementById('vRPid').value.trim();
+            
+            if (!privateKey) {
+                showNotification('Please enter your private API key');
+                return;
+            }
+            
+            if (!vRPid) {
+                showNotification('Please enter your vRP ID');
+                return;
+            }
+            
+            if (!currentServer) {
+                showNotification('Please select a server');
+                return;
+            }
+            
+            // Show loading state
+            connectBtn.disabled = true;
+            connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+            statusDot.className = 'status-dot loading';
+            statusText.textContent = 'Connecting...';
+            
+            try {
+                // First check API charges
+                const charges = await checkAPICharges();
+                if (charges === null) {
+                    throw new Error('Failed to check API charges');
+                }
+                
+                apiCharges = charges;
+                updateChargeCounter();
+                
+                if (charges <= 0) {
+                    showNotification('No API charges remaining. Use /api private refill', 'warning');
+                    throw new Error('No API charges');
+                }
+                
+                // Then fetch loan data
+                await fetchLoanData();
+                
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+                
+                showNotification('Connected to API');
+                
+                // Start auto-refresh if enabled
+                if (document.getElementById('autoRefresh').checked && charges > 10) {
+                    startAutoRefresh();
+                }
+                
+                // Save settings
+                saveSettings();
+            } catch (error) {
+                console.error('Connection error:', error);
+                showNotification('Connection failed');
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+            } finally {
+                resetConnectButton();
+            }
+        }
+
+        // Check API charges
+        async function checkAPICharges() {
+            try {
+                const response = await fetch(currentServer + 'status/charges.json', {
+                    headers: {
+                        'X-Tycoon-Key': privateKey
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data[0];
+            } catch (error) {
+                console.error('Error checking API charges:', error);
+                return null;
+            }
+        }
+
+        // Update charge counter display
+        function updateChargeCounter() {
+            const chargeCounter = document.getElementById('chargeCounter');
+            chargeCounter.textContent = `API Charges: ${apiCharges}`;
+            
+            if (apiCharges < 5) {
+                chargeCounter.className = 'charge-counter critical';
+                if (document.getElementById('notifications').checked && apiCharges > 0) {
+                    showNotification(`Warning: Only ${apiCharges} API charges left!`, 'warning');
+                }
+            } else if (apiCharges < 20) {
+                chargeCounter.className = 'charge-counter warning';
+            } else {
+                chargeCounter.className = 'charge-counter';
+            }
+        }
+
+        // Fetch with confirmation
+        function fetchWithConfirmation() {
+            const now = Date.now();
+            const timeSinceLastFetch = now - lastFetchTime;
+            const minInterval = 30000; // 30 seconds
+            
+            if (timeSinceLastFetch < minInterval) {
+                const seconds = Math.floor((minInterval - timeSinceLastFetch) / 1000);
+                if (!confirm(`You fetched data ${seconds} seconds ago.\n\nEach fetch uses 1 API charge ($1,000 in-game).\n\nContinue anyway?`)) {
+                    return;
+                }
+            }
+            
+            if (apiCharges < 3) {
+                if (!confirm(`Warning: Only ${apiCharges} API charges remaining!\n\nEach charge costs $1,000 in-game.\n\nContinue anyway?`)) {
+                    return;
+                }
+            }
+            
+            lastFetchTime = now;
+            fetchLoanData();
+        }
+
+        // Fetch loan data
+        async function fetchLoanData() {
+            if (!privateKey || !vRPid || !currentServer) {
+                showNotification('Please connect first');
+                return;
+            }
+            
+            try {
+                statusDot.className = 'status-dot loading';
+                statusText.textContent = 'Fetching...';
+                
+                const response = await fetch(`${currentServer}status/wealth/${vRPid}`, {
+                    headers: {
+                        'X-Tycoon-Key': privateKey
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.code !== "200") {
+                    throw new Error('Player must be online to fetch data');
+                }
+                
+                const currentLoan = data.loan || 0;
+                const wallet = data.wallet || 0;
+                const bank = data.bank || 0;
+                
+                // Update API charges from response header
+                const chargesHeader = response.headers.get('X-Tycoon-Charges');
+                if (chargesHeader) {
+                    apiCharges = parseInt(chargesHeader);
+                    updateChargeCounter();
+                }
+                
+                // Update loan display with real data
+                updateLoanDisplay(currentLoan, true);
+                
+                // Save last fetch time
+                localStorage.setItem('last_api_fetch', Date.now());
+                
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+                
+                showNotification('Loan data updated');
+                
+                return true;
+            } catch (error) {
+                console.error('Error fetching loan data:', error);
+                showNotification('Failed to fetch data');
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+                return false;
+            }
+        }
+
+        // Update loan display
+        function updateLoanDisplay(currentLoan, isRealData = false) {
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            // Update loan balance
+            document.getElementById('loanBalance').textContent = formatter.format(currentLoan);
+            document.getElementById('loanSource').textContent = isRealData ? 'Live Data' : 'Estimated';
+            document.getElementById('loanSource').style.color = isRealData ? '#2ecc71' : '#f39c12';
+            
+            // If this is real data from API, update our tracking
+            if (isRealData) {
+                // Set original loan if first time
+                if (originalLoanAmount === 0 && currentLoan > 0) {
+                    originalLoanAmount = currentLoan;
+                    localStorage.setItem('loanTracker_originalLoan', originalLoanAmount.toString());
+                }
+                
+                // Calculate payment if loan decreased
+                if (lastLoanAmount > 0 && currentLoan < lastLoanAmount) {
+                    const payment = lastLoanAmount - currentLoan;
+                    totalPaid += payment;
+                    localStorage.setItem('loanTracker_totalPaid', totalPaid.toString());
+                    
+                    if (document.getElementById('notifications').checked) {
+                        showNotification(`Payment detected: ${formatter.format(payment)}`);
+                    }
+                }
+                
+                // Update last loan amount
+                lastLoanAmount = currentLoan;
+                localStorage.setItem('loanTracker_lastLoan', lastLoanAmount.toString());
+                localStorage.setItem('last_loan_update', new Date().toLocaleTimeString());
+                
+                // Save settings
+                saveSettings();
+            }
+            
+            // Update total paid display
+            updateTotalPaidDisplay();
+            
+            // Calculate progress
+            let progress = 0;
+            if (originalLoanAmount > 0) {
+                progress = Math.min(100, (totalPaid / originalLoanAmount) * 100);
+            }
+            
+            // Update progress bar
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = `${progress}%`;
+            document.getElementById('progressPercentage').textContent = `${progress.toFixed(1)}%`;
+            document.getElementById('progressSource').textContent = isRealData ? 'Based on live data' : 'Based on estimates';
+            document.getElementById('progressSource').style.color = isRealData ? '#2ecc71' : '#f39c12';
+            
+            // Update progress bar color
+            progressFill.className = 'progress-fill';
+            if (progress < 30) {
+                progressFill.classList.add('low');
+            } else if (progress < 70) {
+                progressFill.classList.add('medium');
+            }
+        }
+
+        // Show estimated data
+        function showEstimatedData() {
+            if (lastLoanAmount > 0) {
+                updateLoanDisplay(lastLoanAmount, false);
+            }
+            
+            // Try to update charge counter if we have credentials
+            if (privateKey && currentServer) {
+                checkAPICharges().then(charges => {
+                    if (charges !== null) {
+                        apiCharges = charges;
+                        updateChargeCounter();
+                    }
+                });
+            }
+        }
+
+        // Update total paid display
+        function updateTotalPaidDisplay() {
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            document.getElementById('totalPaid').textContent = formatter.format(totalPaid);
+            document.getElementById('paidSource').textContent = totalPaid > 0 ? 'Tracked locally' : 'No payments yet';
+            document.getElementById('paidSource').style.color = totalPaid > 0 ? '#2ecc71' : '#a0a0c0';
+        }
+
+        // Clear all data
+        function clearAll() {
+            if (confirm('Clear all saved data? This will reset all tracking.')) {
+                localStorage.removeItem('loanTracker_privateKey');
+                localStorage.removeItem('loanTracker_vRPid');
+                localStorage.removeItem('loanTracker_originalLoan');
+                localStorage.removeItem('loanTracker_totalPaid');
+                localStorage.removeItem('loanTracker_lastLoan');
+                localStorage.removeItem('last_loan_update');
+                localStorage.removeItem('last_api_fetch');
+                
+                document.getElementById('privateKey').value = '';
+                document.getElementById('vRPid').value = '';
+                
+                privateKey = '';
+                vRPid = '';
+                originalLoanAmount = 0;
+                totalPaid = 0;
+                lastLoanAmount = 0;
+                
+                document.getElementById('loanBalance').textContent = '$0';
+                document.getElementById('totalPaid').textContent = '$0';
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('progressPercentage').textContent = '0%';
+                document.getElementById('loanSource').textContent = '';
+                document.getElementById('paidSource').textContent = '';
+                document.getElementById('progressSource').textContent = '';
+                document.getElementById('chargeCounter').textContent = 'API Charges: Not checked';
+                document.getElementById('chargeCounter').className = 'charge-counter';
+                
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+                
+                stopAutoRefresh();
+                
+                showNotification('All data cleared');
+            }
+        }
+
+        // Manual payment tracking
+        function toggleManualTrack() {
+            manualTrackPanel.style.display = 
+                manualTrackPanel.style.display === 'block' ? 'none' : 'block';
+            
+            // Pre-fill current values
+            document.getElementById('originalLoan').value = originalLoanAmount || '';
+            document.getElementById('currentLoan').value = lastLoanAmount || '';
+        }
+
+        function saveManualPayment() {
+            const originalInput = parseFloat(document.getElementById('originalLoan').value) || 0;
+            const paymentInput = parseFloat(document.getElementById('paymentAmount').value) || 0;
+            const currentInput = parseFloat(document.getElementById('currentLoan').value) || 0;
+            
+            if (originalInput > 0 && originalInput !== originalLoanAmount) {
+                originalLoanAmount = originalInput;
+                localStorage.setItem('loanTracker_originalLoan', originalLoanAmount.toString());
+            }
+            
+            if (paymentInput > 0) {
+                totalPaid += paymentInput;
+                localStorage.setItem('loanTracker_totalPaid', totalPaid.toString());
+            }
+            
+            if (currentInput > 0 && currentInput !== lastLoanAmount) {
+                lastLoanAmount = currentInput;
+                localStorage.setItem('loanTracker_lastLoan', lastLoanAmount.toString());
+            } else if (paymentInput > 0) {
+                // Estimate new loan balance based on payment
+                lastLoanAmount = Math.max(0, lastLoanAmount - paymentInput);
+                localStorage.setItem('loanTracker_lastLoan', lastLoanAmount.toString());
+            }
+            
+            localStorage.setItem('last_loan_update', new Date().toLocaleTimeString());
+            
+            // Update display
+            updateLoanDisplay(lastLoanAmount, false);
+            updateTotalPaidDisplay();
+            
+            // Close panel
+            manualTrackPanel.style.display = 'none';
+            
+            // Clear inputs
+            document.getElementById('paymentAmount').value = '';
+            
+            showNotification('Manual payment saved');
+        }
+
+        // Toggle collapse
+        function toggleCollapse() {
+            isCollapsed = !isCollapsed;
+            floatingWindow.classList.toggle('collapsed');
+            collapseBtn.innerHTML = isCollapsed ? 
+                '<i class="fas fa-plus"></i>' : 
+                '<i class="fas fa-minus"></i>';
+            collapseBtn.title = isCollapsed ? 'Expand' : 'Collapse';
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            settingsPanel.style.display = 
+                settingsPanel.style.display === 'block' ? 'none' : 'block';
+            manualTrackPanel.style.display = 'none';
+        }
+
+        // Toggle auto-refresh
+        function toggleAutoRefresh(e) {
+            localStorage.setItem('loanTracker_autoRefresh', e.target.checked);
+            if (e.target.checked && privateKey && vRPid && currentServer && apiCharges > 10) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        }
+
+        // Toggle show charges
+        function toggleShowCharges(e) {
+            localStorage.setItem('loanTracker_showCharges', e.target.checked);
+            const chargeCounter = document.getElementById('chargeCounter');
+            chargeCounter.style.display = e.target.checked ? 'block' : 'none';
+        }
+
+        // Toggle notifications
+        function toggleNotifications(e) {
+            localStorage.setItem('loanTracker_notifications', e.target.checked.toString());
+        }
+
+        // Toggle always on top
+        function toggleAlwaysOnTop(e) {
+            localStorage.setItem('loanTracker_alwaysOnTop', e.target.checked);
+            floatingWindow.style.zIndex = e.target.checked ? '10000' : '9999';
+        }
+
+        // Toggle transparency
+        function toggleTransparency(e) {
+            localStorage.setItem('loanTracker_transparency', e.target.checked);
+            floatingWindow.style.background = e.target.checked ? 
+                'rgba(20, 20, 30, 0.85)' : 
+                'rgba(20, 20, 30, 0.92)';
+        }
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            if (apiCharges > 10) { // Only auto-refresh if we have enough charges
+                apiInterval = setInterval(() => {
+                    if (privateKey && vRPid && currentServer && apiCharges > 3) {
+                        fetchLoanData();
+                    } else {
+                        stopAutoRefresh();
+                        showNotification('Auto-refresh stopped (low charges)', 'warning');
+                    }
+                }, 60000); // 60 seconds
+            }
+        }
+
+        // Stop auto-refresh
+        function stopAutoRefresh() {
+            if (apiInterval) {
+                clearInterval(apiInterval);
+                apiInterval = null;
+            }
+        }
+
+        // Reset connect button
+        function resetConnectButton() {
+            connectBtn.disabled = false;
+            connectBtn.innerHTML = '<i class="fas fa-plug"></i> Connect';
+        }
+
+        // Show notification
+        function showNotification(message, type = '') {
+            if (!document.getElementById('notifications').checked && type !== 'warning') return;
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Save window position on resize and move
+        floatingWindow.addEventListener('mouseup', saveWindowPosition);
+        floatingWindow.addEventListener('mouseleave', () => {
+            if (!isDragging) {
+                saveWindowPosition();
+            }
+        });
+
+        // Save settings on page unload
+        window.addEventListener('beforeunload', () => {
+            saveWindowPosition();
+            saveSettings();
+        });
+    </script>
+</body>
+</html>
