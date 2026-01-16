@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Floating Window */
+        #floatingWindow {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            width: 400px;
+            height: 280px;
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 8px;
+            color: #e0e0ff;
+            z-index: 10000;
+            overflow: hidden;
+            resize: both;
+            min-width: 350px;
+            min-height: 250px;
+            max-width: 600px;
+            max-height: 450px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+        }
+
+        /* Window Header */
+        .window-header {
+            height: 35px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .window-title i {
+            color: #4a6fa5;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: #a0a0c0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Window Content */
+        .window-content {
+            height: calc(100% - 35px);
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: #2ecc71;
+        }
+
+        .status-dot.disconnected {
+            background: #e74c3c;
+        }
+
+        .status-dot.loading {
+            background: #f39c12;
+        }
+
+        /* Loan Stats */
+        .loan-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            background: rgba(30, 30, 40, 0.7);
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .loan .stat-value {
+            color: #e74c3c;
+        }
+
+        .paid .stat-value {
+            color: #2ecc71;
+        }
+
+        /* Balances */
+        .balances {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 12px 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            height: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4a6fa5;
+            border-radius: 9px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        /* Data Source */
+        .data-source {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .data-source.live {
+            color: #2ecc71;
+        }
+
+        .data-source.estimated {
+            color: #f39c12;
+        }
+
+        /* Manual Tracking */
+        .manual-tracking {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .manual-inputs {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .manual-inputs input {
+            width: 100%;
+            padding: 5px 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(100, 100, 150, 0.3);
+            border-radius: 4px;
+            color: #e0e0ff;
+            font-size: 0.8rem;
+        }
+
+        .manual-inputs button {
+            padding: 5px 8px;
+            background: #4a6fa5;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .manual-inputs button:hover {
+            background: #166088;
+        }
+
+        /* Info Text */
+        .info-text {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            text-align: center;
+            margin-top: 4px;
+            padding: 3px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 280px;
+            background: rgba(10, 10, 20, 0.9);
+            border-radius: 8px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+            padding: 12px;
+            z-index: 9999;
+            display: none;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 12px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-option {
+            margin-bottom: 10px;
+        }
+
+        .settings-option label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .settings-option input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Hide window content when collapsed */
+        .collapsed .window-content {
+            display: none;
+        }
+
+        .collapsed {
+            height: 35px !important;
+            min-height: 35px !important;
+        }
+
+        /* Scrollbar Styling */
+        .window-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .window-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+        }
+
+        .window-content::-webkit-scrollbar-thumb {
+            background: rgba(100, 100, 150, 0.4);
+            border-radius: 2px;
+        }
+
+        /* Resize Handle */
+        #floatingWindow::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(135deg, transparent 50%, rgba(100, 100, 150, 0.4) 50%);
+            cursor: se-resize;
+        }
+
+        /* Simple button for settings panel */
+        .panel-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 8px;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .panel-btn:hover {
+            background: #166088;
+        }
+    </style>
+</head>
+<body>
+    <div id="floatingWindow">
+        <div class="window-header" id="windowHeader">
+            <div class="window-title">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>Loan Tracker</span>
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot disconnected" id="statusDot"></div>
+                    <span id="statusText">Loading...</span>
+                </div>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn" id="settingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="control-btn" id="collapseBtn" title="Collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="window-content" id="windowContent">
+            <div class="loan-stats">
+                <div class="stat-card loan">
+                    <div class="stat-label">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Loan Balance</span>
+                    </div>
+                    <div class="stat-value" id="loanBalance">$0</div>
+                    <div class="data-source estimated" id="loanSource">Manual Tracking</div>
+                </div>
+                
+                <div class="stat-card paid">
+                    <div class="stat-label">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Total Paid</span>
+                    </div>
+                    <div class="stat-value" id="totalPaid">$0</div>
+                    <div class="data-source" id="paidSource">Calculated</div>
+                </div>
+            </div>
+
+            <div class="balances">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-wallet"></i>
+                        <span>Wallet</span>
+                    </div>
+                    <div class="stat-value" id="walletBalance">$0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-university"></i>
+                        <span>Bank</span>
+                    </div>
+                    <div class="stat-value" id="bankBalance">$0</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Loan Progress</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="data-source estimated" id="progressSource">Manual Tracking</div>
+            </div>
+
+            <div class="info-text" id="dataSourceInfo">
+                <i class="fas fa-info-circle"></i>
+                <span>Loan tracking requires manual input</span>
+            </div>
+
+            <div class="manual-tracking">
+                <div class="stat-label">
+                    <i class="fas fa-edit"></i>
+                    <span>Set Original Loan</span>
+                </div>
+                <div class="manual-inputs">
+                    <input type="number" id="manualOriginalLoan" placeholder="Enter original loan">
+                    <button id="saveManualBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <h3><i class="fas fa-cog"></i> Settings</h3>
+        
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="autoHide" checked>
+                <span>Auto-hide when pinned</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="showBalances" checked>
+                <span>Show Wallet/Bank</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="notifications" checked>
+                <span>Enable Notifications</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="alwaysOnTop">
+                <span>Always on Top</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="transparency">
+                <span>More Transparent</span>
+            </label>
+        </div>
+
+        <button class="panel-btn" id="resetPositionBtn">
+            <i class="fas fa-undo"></i>
+            Reset Position (R Key)
+        </button>
+
+        <div style="margin-top: 12px; font-size: 0.75rem; color: #a0a0c0; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+            <p><strong>Note:</strong> Loan data not available in user apps</p>
+            <p>• Set original loan manually</p>
+            <p>• Payments tracked automatically</p>
+            <p>• Wallet/bank update live</p>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let originalLoanAmount = 0;
+        let totalPaid = 0;
+        let currentLoanAmount = 0;
+        let isDragging = false;
+        let isCollapsed = false;
+        let dragOffset = { x: 0, y: 0 };
+        let gameData = {};
+        let isInGame = false;
+        let lastManualUpdate = 0;
+
+        // DOM Elements
+        const floatingWindow = document.getElementById('floatingWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        const windowContent = document.getElementById('windowContent');
+        const collapseBtn = document.getElementById('collapseBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const resetPositionBtn = document.getElementById('resetPositionBtn');
+        const saveManualBtn = document.getElementById('saveManualBtn');
+        const manualOriginalLoan = document.getElementById('manualOriginalLoan');
+        const dataSourceInfo = document.getElementById('dataSourceInfo');
+
+        // Initialize
+        function init() {
+            // Load saved settings
+            loadSettings();
+            
+            // Set up control buttons
+            collapseBtn.addEventListener('click', toggleCollapse);
+            settingsBtn.addEventListener('click', toggleSettings);
+            resetPositionBtn.addEventListener('click', resetWindowPosition);
+            saveManualBtn.addEventListener('click', saveManualOriginalLoan);
+
+            // Set up settings checkboxes
+            document.getElementById('autoHide').addEventListener('change', toggleAutoHide);
+            document.getElementById('showBalances').addEventListener('change', toggleShowBalances);
+            document.getElementById('notifications').addEventListener('change', toggleNotifications);
+            document.getElementById('alwaysOnTop').addEventListener('change', toggleAlwaysOnTop);
+            document.getElementById('transparency').addEventListener('change', toggleTransparency);
+
+            // Close settings panel when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+
+            // Add R key listener for resetting position
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    resetWindowPosition();
+                }
+                if (e.key === 'Escape') {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+
+            // Setup message listener for in-game data
+            window.addEventListener('message', handleGameMessage);
+
+            // Check if we're in-game by requesting data
+            requestGameData();
+
+            // Show initial data
+            updateDisplay();
+            
+            // Update info based on whether we're in-game
+            updateDataSourceInfo();
+        }
+
+        // Handle messages from game client
+        function handleGameMessage(event) {
+            if (event.data.fromTycoonScript === true) {
+                isInGame = true;
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'In-Game';
+                updateDataSourceInfo();
+            }
+
+            if (event.data.data) {
+                gameData = event.data.data;
+                processGameData();
+            }
+        }
+
+        // Request data from game
+        function requestGameData() {
+            window.parent.postMessage({ type: 'getData' }, '*');
+            
+            // If no response after 1 second, assume we're not in-game
+            setTimeout(() => {
+                if (!isInGame) {
+                    statusDot.className = 'status-dot disconnected';
+                    statusText.textContent = 'Not In-Game';
+                    updateDataSourceInfo();
+                }
+            }, 1000);
+        }
+
+        // Process game data
+        function processGameData() {
+            // Update wallet and bank if available
+            const wallet = gameData.wallet || 0;
+            const bank = gameData.bank || 0;
+            
+            // Format and display wallet/bank
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            document.getElementById('walletBalance').textContent = formatter.format(wallet);
+            document.getElementById('bankBalance').textContent = formatter.format(bank);
+            
+            // Check for loan data (it's not in the user app data stream)
+            // So we'll keep using our manual tracking
+            updateDataSourceInfo();
+        }
+
+        // Update data source info
+        function updateDataSourceInfo() {
+            if (isInGame) {
+                dataSourceInfo.innerHTML = '<i class="fas fa-gamepad"></i> <span>In-Game: Wallet/Bank Live</span>';
+                dataSourceInfo.style.color = '#2ecc71';
+            } else {
+                dataSourceInfo.innerHTML = '<i class="fas fa-info-circle"></i> <span>Load via F1 menu in-game</span>';
+                dataSourceInfo.style.color = '#f39c12';
+            }
+        }
+
+        // Save manual original loan
+        function saveManualOriginalLoan() {
+            const inputValue = parseFloat(manualOriginalLoan.value);
+            if (inputValue && inputValue > 0) {
+                originalLoanAmount = inputValue;
+                localStorage.setItem('originalLoanAmount', originalLoanAmount.toString());
+                
+                // If we have a current loan, use it for progress calculation
+                if (currentLoanAmount > 0) {
+                    totalPaid = Math.max(0, originalLoanAmount - currentLoanAmount);
+                    localStorage.setItem('totalPaid', totalPaid.toString());
+                }
+                
+                manualOriginalLoan.value = '';
+                updateDisplay();
+                
+                if (document.getElementById('notifications').checked) {
+                    showNotification('Original loan saved');
+                }
+                
+                lastManualUpdate = Date.now();
+            }
+        }
+
+        // Update all displays
+        function updateDisplay() {
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            // Update loan balance
+            document.getElementById('loanBalance').textContent = formatter.format(currentLoanAmount);
+            
+            // Update total paid
+            document.getElementById('totalPaid').textContent = formatter.format(totalPaid);
+            
+            // Calculate and update progress
+            let progress = 0;
+            if (originalLoanAmount > 0) {
+                progress = Math.min(100, (totalPaid / originalLoanAmount) * 100);
+            }
+            
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressPercentage').textContent = `${progress.toFixed(1)}%`;
+            
+            // Update data source labels
+            if (originalLoanAmount > 0) {
+                document.getElementById('loanSource').textContent = 'Manual Tracking';
+                document.getElementById('progressSource').textContent = 'Based on manual input';
+            } else {
+                document.getElementById('loanSource').textContent = 'Set Original Loan';
+                document.getElementById('progressSource').textContent = 'Set original loan first';
+            }
+        }
+
+        // Drag functionality
+        function startDrag(e) {
+            if (e.target.closest('.control-btn')) return;
+            
+            isDragging = true;
+            const rect = floatingWindow.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            
+            floatingWindow.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            floatingWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+            floatingWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+            
+            saveWindowPosition();
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            floatingWindow.style.cursor = 'default';
+        }
+
+        // Save window position and size
+        function saveWindowPosition() {
+            const rect = floatingWindow.getBoundingClientRect();
+            localStorage.setItem('windowX', rect.left);
+            localStorage.setItem('windowY', rect.top);
+            localStorage.setItem('windowWidth', rect.width);
+            localStorage.setItem('windowHeight', rect.height);
+        }
+
+        // Load window position and size
+        function loadWindowPosition() {
+            const x = localStorage.getItem('windowX');
+            const y = localStorage.getItem('windowY');
+            const width = localStorage.getItem('windowWidth');
+            const height = localStorage.getItem('windowHeight');
+            
+            if (x && y) {
+                floatingWindow.style.left = x + 'px';
+                floatingWindow.style.top = y + 'px';
+            }
+            
+            if (width && height) {
+                floatingWindow.style.width = width + 'px';
+                floatingWindow.style.height = height + 'px';
+            }
+        }
+
+        // Reset window position
+        function resetWindowPosition() {
+            floatingWindow.style.left = '50px';
+            floatingWindow.style.top = '50px';
+            floatingWindow.style.width = '400px';
+            floatingWindow.style.height = '280px';
+            
+            localStorage.removeItem('windowX');
+            localStorage.removeItem('windowY');
+            localStorage.removeItem('windowWidth');
+            localStorage.removeItem('windowHeight');
+            
+            showNotification('Position reset');
+        }
+
+        // Load settings
+        function loadSettings() {
+            // Load window position
+            loadWindowPosition();
+            
+            // Load loan data
+            originalLoanAmount = parseFloat(localStorage.getItem('originalLoanAmount') || 0);
+            totalPaid = parseFloat(localStorage.getItem('totalPaid') || 0);
+            currentLoanAmount = parseFloat(localStorage.getItem('currentLoanAmount') || 0);
+            lastManualUpdate = parseInt(localStorage.getItem('lastManualUpdate') || 0);
+            
+            // Pre-fill manual input
+            if (originalLoanAmount > 0) {
+                manualOriginalLoan.value = originalLoanAmount;
+            }
+            
+            // Load settings
+            const autoHide = localStorage.getItem('autoHide');
+            const showBalances = localStorage.getItem('showBalances');
+            const notifications = localStorage.getItem('notifications');
+            const alwaysOnTop = localStorage.getItem('alwaysOnTop');
+            const transparency = localStorage.getItem('transparency');
+            
+            document.getElementById('autoHide').checked = autoHide !== 'false';
+            document.getElementById('showBalances').checked = showBalances !== 'false';
+            document.getElementById('notifications').checked = notifications !== 'false';
+            document.getElementById('alwaysOnTop').checked = alwaysOnTop === 'true';
+            document.getElementById('transparency').checked = transparency === 'true';
+            
+            // Apply settings
+            if (alwaysOnTop === 'true') {
+                floatingWindow.style.zIndex = '10000';
+            }
+            if (transparency === 'true') {
+                floatingWindow.style.background = 'rgba(10, 10, 20, 0.75)';
+            }
+            if (showBalances === 'false') {
+                document.querySelector('.balances').style.display = 'none';
+            }
+        }
+
+        // Toggle collapse
+        function toggleCollapse() {
+            isCollapsed = !isCollapsed;
+            floatingWindow.classList.toggle('collapsed');
+            collapseBtn.innerHTML = isCollapsed ? 
+                '<i class="fas fa-plus"></i>' : 
+                '<i class="fas fa-minus"></i>';
+            collapseBtn.title = isCollapsed ? 'Expand' : 'Collapse';
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            settingsPanel.style.display = 
+                settingsPanel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Toggle auto-hide
+        function toggleAutoHide(e) {
+            localStorage.setItem('autoHide', e.target.checked);
+        }
+
+        // Toggle show balances
+        function toggleShowBalances(e) {
+            localStorage.setItem('showBalances', e.target.checked);
+            document.querySelector('.balances').style.display = e.target.checked ? 'grid' : 'none';
+        }
+
+        // Toggle notifications
+        function toggleNotifications(e) {
+            localStorage.setItem('notifications', e.target.checked.toString());
+        }
+
+        // Toggle always on top
+        function toggleAlwaysOnTop(e) {
+            localStorage.setItem('alwaysOnTop', e.target.checked);
+            floatingWindow.style.zIndex = e.target.checked ? '10000' : '9999';
+        }
+
+        // Toggle transparency
+        function toggleTransparency(e) {
+            localStorage.setItem('transparency', e.target.checked);
+            floatingWindow.style.background = e.target.checked ? 
+                'rgba(10, 10, 20, 0.75)' : 
+                'rgba(10, 10, 20, 0.85)';
+        }
+
+        // Simple notification function
+        function showNotification(message) {
+            if (!document.getElementById('notifications').checked) return;
+            
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 8px 12px;
+                background: rgba(30, 30, 40, 0.9);
+                color: white;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                z-index: 10001;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        // Save current loan amount (for manual updates)
+        function saveCurrentLoan(amount) {
+            if (amount >= 0) {
+                // Calculate payment if loan decreased
+                if (currentLoanAmount > 0 && amount < currentLoanAmount) {
+                    const payment = currentLoanAmount - amount;
+                    totalPaid += payment;
+                    localStorage.setItem('totalPaid', totalPaid.toString());
+                    
+                    if (document.getElementById('notifications').checked) {
+                        const formatter = new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        });
+                        showNotification(`Payment: ${formatter.format(payment)}`);
+                    }
+                }
+                
+                currentLoanAmount = amount;
+                localStorage.setItem('currentLoanAmount', currentLoanAmount.toString());
+                updateDisplay();
+            }
+        }
+
+        // Add manual payment button
+        function addPayment(amount) {
+            if (amount > 0) {
+                totalPaid += amount;
+                localStorage.setItem('totalPaid', totalPaid.toString());
+                updateDisplay();
+                
+                if (document.getElementById('notifications').checked) {
+                    const formatter = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    showNotification(`Added payment: ${formatter.format(amount)}`);
+                }
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Save window position on resize and move
+        floatingWindow.addEventListener('mouseup', saveWindowPosition);
+
+        // Periodically check for game data if in-game
+        setInterval(() => {
+            if (isInGame) {
+                requestGameData();
+            }
+        }, 5000);
+
+        // Add helper function to update loan manually (for testing/debugging)
+        window.updateLoanManually = function(amount) {
+            saveCurrentLoan(amount);
+        };
+
+        // Add helper function to add payment
+        window.addPaymentManually = function(amount) {
+            addPayment(amount);
+        };
+    </script>
+</body>
+</html>
