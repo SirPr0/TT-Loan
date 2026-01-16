@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Floating Window */
+        #floatingWindow {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            width: 400px;
+            height: 300px;
+            background: rgba(15, 15, 25, 0.9);
+            border-radius: 8px;
+            border: 1px solid rgba(70, 70, 100, 0.4);
+            color: #e0e0ff;
+            z-index: 10000;
+            overflow: hidden;
+            resize: both;
+            min-width: 350px;
+            min-height: 250px;
+            max-width: 600px;
+            max-height: 500px;
+        }
+
+        /* Window Header */
+        .window-header {
+            height: 35px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+        }
+
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .window-title i {
+            color: #4a6fa5;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: #a0a0c0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Window Content */
+        .window-content {
+            height: calc(100% - 35px);
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        /* Loan Stats */
+        .loan-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            background: rgba(25, 25, 35, 0.8);
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid rgba(80, 80, 120, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .loan .stat-value {
+            color: #ff6b6b;
+        }
+
+        .paid .stat-value {
+            color: #51cf66;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 12px 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            height: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a6fa5, #166088);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        /* Balances */
+        .balances {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        /* Input Section */
+        .input-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(80, 80, 120, 0.2);
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+            color: #a0a0c0;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .input-row input {
+            flex: 1;
+            padding: 6px 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(80, 80, 120, 0.3);
+            border-radius: 4px;
+            color: #e0e0ff;
+            font-size: 0.8rem;
+        }
+
+        .input-row button {
+            padding: 6px 12px;
+            background: #4a6fa5;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .input-row button:hover {
+            background: #166088;
+        }
+
+        /* Status */
+        .status {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            text-align: center;
+            margin-top: 8px;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .status i {
+            margin-right: 4px;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 250px;
+            background: rgba(15, 15, 25, 0.95);
+            border-radius: 8px;
+            border: 1px solid rgba(70, 70, 100, 0.4);
+            padding: 12px;
+            z-index: 9999;
+            display: none;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 12px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-option {
+            margin-bottom: 8px;
+        }
+
+        .settings-option label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .settings-option input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Collapsed state */
+        .collapsed .window-content {
+            display: none;
+        }
+
+        .collapsed {
+            height: 35px !important;
+            min-height: 35px !important;
+        }
+
+        /* Resize handle */
+        #floatingWindow::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(135deg, transparent 50%, rgba(100, 100, 150, 0.3) 50%);
+            cursor: se-resize;
+        }
+    </style>
+</head>
+<body>
+    <div id="floatingWindow">
+        <div class="window-header" id="windowHeader">
+            <div class="window-title">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>Loan Tracker</span>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn" id="settingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="control-btn" id="collapseBtn" title="Collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="window-content" id="windowContent">
+            <div class="loan-stats">
+                <div class="stat-card loan">
+                    <div class="stat-label">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Loan Balance</span>
+                    </div>
+                    <div class="stat-value" id="loanBalance">$0</div>
+                </div>
+                
+                <div class="stat-card paid">
+                    <div class="stat-label">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Total Paid</span>
+                    </div>
+                    <div class="stat-value" id="totalPaid">$0</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Progress</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="balances">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-wallet"></i>
+                        <span>Wallet</span>
+                    </div>
+                    <div class="stat-value" id="walletBalance">$0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-university"></i>
+                        <span>Bank</span>
+                    </div>
+                    <div class="stat-value" id="bankBalance">$0</div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <div class="input-group">
+                    <label>Original Loan Amount</label>
+                    <div class="input-row">
+                        <input type="number" id="originalLoanInput" placeholder="Enter original loan">
+                        <button id="saveOriginalBtn">Save</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Current Loan Balance</label>
+                    <div class="input-row">
+                        <input type="number" id="currentLoanInput" placeholder="Enter current loan">
+                        <button id="saveCurrentBtn">Update</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Add Payment</label>
+                    <div class="input-row">
+                        <input type="number" id="paymentInput" placeholder="Enter payment amount">
+                        <button id="addPaymentBtn">Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status" id="statusMessage">
+                <i class="fas fa-info-circle"></i>
+                <span>Loan data not available in-game - Enter manually</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <h3><i class="fas fa-cog"></i> Settings</h3>
+        
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="autoSave" checked>
+                <span>Auto-save data</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="showBalances" checked>
+                <span>Show wallet/bank</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="notifications" checked>
+                <span>Enable notifications</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="resetPositionCheck">
+                <span>Reset position on R key</span>
+            </label>
+        </div>
+
+        <button onclick="resetWindowPosition()" style="width:100%;padding:8px;margin-top:10px;background:#4a6fa5;color:white;border:none;border-radius:4px;cursor:pointer">
+            Reset Position (R)
+        </button>
+
+        <div style="margin-top:10px;font-size:0.75rem;color:#a0a0c0;">
+            <p>Loan data must be entered manually since it's not available in-game.</p>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let originalLoan = 0;
+        let currentLoan = 0;
+        let totalPaid = 0;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let gameData = {};
+
+        // DOM Elements
+        const floatingWindow = document.getElementById('floatingWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        const collapseBtn = document.getElementById('collapseBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Initialize
+        function init() {
+            loadSettings();
+            
+            // Set up event listeners
+            collapseBtn.addEventListener('click', toggleCollapse);
+            settingsBtn.addEventListener('click', toggleSettings);
+            document.getElementById('saveOriginalBtn').addEventListener('click', saveOriginalLoan);
+            document.getElementById('saveCurrentBtn').addEventListener('click', updateCurrentLoan);
+            document.getElementById('addPaymentBtn').addEventListener('click', addPayment);
+            
+            // Settings
+            document.getElementById('autoSave').addEventListener('change', toggleAutoSave);
+            document.getElementById('showBalances').addEventListener('change', toggleShowBalances);
+            document.getElementById('notifications').addEventListener('change', toggleNotifications);
+            document.getElementById('resetPositionCheck').addEventListener('change', toggleResetPosition);
+            
+            // Drag and drop
+            windowHeader.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // Listen for game data (even though loan won't be in it)
+            window.addEventListener('message', handleGameMessage);
+            
+            // Request initial data
+            requestGameData();
+            
+            // Update display
+            updateDisplay();
+        }
+
+        // Load saved data
+        function loadSettings() {
+            // Load window position
+            const savedX = localStorage.getItem('windowX');
+            const savedY = localStorage.getItem('windowY');
+            const savedWidth = localStorage.getItem('windowWidth');
+            const savedHeight = localStorage.getItem('windowHeight');
+            
+            if (savedX && savedY) {
+                floatingWindow.style.left = savedX + 'px';
+                floatingWindow.style.top = savedY + 'px';
+            }
+            if (savedWidth && savedHeight) {
+                floatingWindow.style.width = savedWidth + 'px';
+                floatingWindow.style.height = savedHeight + 'px';
+            }
+            
+            // Load loan data
+            originalLoan = parseFloat(localStorage.getItem('originalLoan')) || 0;
+            currentLoan = parseFloat(localStorage.getItem('currentLoan')) || 0;
+            totalPaid = parseFloat(localStorage.getItem('totalPaid')) || 0;
+            
+            // Load settings
+            document.getElementById('autoSave').checked = localStorage.getItem('autoSave') !== 'false';
+            document.getElementById('showBalances').checked = localStorage.getItem('showBalances') !== 'false';
+            document.getElementById('notifications').checked = localStorage.getItem('notifications') !== 'false';
+            document.getElementById('resetPositionCheck').checked = localStorage.getItem('resetPosition') === 'true';
+            
+            // Apply settings
+            if (localStorage.getItem('showBalances') === 'false') {
+                document.querySelector('.balances').style.display = 'none';
+            }
+        }
+
+        // Save data
+        function saveData() {
+            if (document.getElementById('autoSave').checked) {
+                localStorage.setItem('originalLoan', originalLoan);
+                localStorage.setItem('currentLoan', currentLoan);
+                localStorage.setItem('totalPaid', totalPaid);
+            }
+        }
+
+        // Save window position
+        function saveWindowPosition() {
+            const rect = floatingWindow.getBoundingClientRect();
+            localStorage.setItem('windowX', rect.left);
+            localStorage.setItem('windowY', rect.top);
+            localStorage.setItem('windowWidth', rect.width);
+            localStorage.setItem('windowHeight', rect.height);
+        }
+
+        // Reset window position
+        function resetWindowPosition() {
+            floatingWindow.style.left = '50px';
+            floatingWindow.style.top = '50px';
+            floatingWindow.style.width = '400px';
+            floatingWindow.style.height = '300px';
+            saveWindowPosition();
+            showNotification('Window position reset');
+        }
+
+        // Update display
+        function updateDisplay() {
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            // Update loan balance
+            document.getElementById('loanBalance').textContent = formatter.format(currentLoan);
+            
+            // Update total paid
+            document.getElementById('totalPaid').textContent = formatter.format(totalPaid);
+            
+            // Calculate and update progress
+            let progress = 0;
+            if (originalLoan > 0 && currentLoan >= 0) {
+                const paidAmount = originalLoan - currentLoan;
+                progress = Math.min(100, (paidAmount / originalLoan) * 100);
+            }
+            
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressPercentage').textContent = `${progress.toFixed(1)}%`;
+            
+            // Update input values
+            if (originalLoan > 0) {
+                document.getElementById('originalLoanInput').value = originalLoan;
+            }
+            if (currentLoan > 0) {
+                document.getElementById('currentLoanInput').value = currentLoan;
+            }
+        }
+
+        // Save original loan
+        function saveOriginalLoan() {
+            const input = document.getElementById('originalLoanInput');
+            const value = parseFloat(input.value);
+            
+            if (value && value > 0) {
+                originalLoan = value;
+                saveData();
+                updateDisplay();
+                showNotification('Original loan saved');
+                input.value = '';
+            } else {
+                showNotification('Please enter a valid amount', true);
+            }
+        }
+
+        // Update current loan
+        function updateCurrentLoan() {
+            const input = document.getElementById('currentLoanInput');
+            const newLoan = parseFloat(input.value);
+            
+            if (newLoan >= 0) {
+                // If we have a previous loan, calculate payment
+                if (currentLoan > 0 && newLoan < currentLoan) {
+                    const payment = currentLoan - newLoan;
+                    totalPaid += payment;
+                    showNotification(`Payment of $${payment.toLocaleString()} recorded`);
+                }
+                
+                currentLoan = newLoan;
+                saveData();
+                updateDisplay();
+                input.value = '';
+            } else {
+                showNotification('Please enter a valid amount', true);
+            }
+        }
+
+        // Add payment
+        function addPayment() {
+            const input = document.getElementById('paymentInput');
+            const payment = parseFloat(input.value);
+            
+            if (payment && payment > 0) {
+                // Reduce current loan by payment amount
+                currentLoan = Math.max(0, currentLoan - payment);
+                totalPaid += payment;
+                
+                saveData();
+                updateDisplay();
+                showNotification(`Added payment of $${payment.toLocaleString()}`);
+                input.value = '';
+            } else {
+                showNotification('Please enter a valid payment amount', true);
+            }
+        }
+
+        // Handle game data
+        function handleGameMessage(event) {
+            if (event.data.data) {
+                gameData = event.data.data;
+                
+                // Update wallet and bank if available
+                if (gameData.wallet !== undefined) {
+                    const formatter = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    document.getElementById('walletBalance').textContent = formatter.format(gameData.wallet);
+                }
+                
+                if (gameData.bank !== undefined) {
+                    const formatter = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    document.getElementById('bankBalance').textContent = formatter.format(gameData.bank);
+                }
+                
+                // Update status message
+                statusMessage.innerHTML = '<i class="fas fa-check-circle"></i> <span>Connected to game - Wallet/Bank updating</span>';
+                statusMessage.style.color = '#51cf66';
+            }
+        }
+
+        // Request game data
+        function requestGameData() {
+            window.parent.postMessage({ type: 'getData' }, '*');
+        }
+
+        // Show notification
+        function showNotification(message, isError = false) {
+            if (!document.getElementById('notifications').checked) return;
+            
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 8px 12px;
+                background: ${isError ? 'rgba(255, 107, 107, 0.9)' : 'rgba(74, 111, 165, 0.9)'};
+                color: white;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                z-index: 10001;
+            `;
+            
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        // Toggle collapse
+        function toggleCollapse() {
+            floatingWindow.classList.toggle('collapsed');
+            collapseBtn.innerHTML = floatingWindow.classList.contains('collapsed') ? 
+                '<i class="fas fa-plus"></i>' : '<i class="fas fa-minus"></i>';
+        }
+
+        // Toggle settings
+        function toggleSettings() {
+            settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Settings toggles
+        function toggleAutoSave(e) {
+            localStorage.setItem('autoSave', e.target.checked);
+        }
+
+        function toggleShowBalances(e) {
+            localStorage.setItem('showBalances', e.target.checked);
+            document.querySelector('.balances').style.display = e.target.checked ? 'grid' : 'none';
+        }
+
+        function toggleNotifications(e) {
+            localStorage.setItem('notifications', e.target.checked);
+        }
+
+        function toggleResetPosition(e) {
+            localStorage.setItem('resetPosition', e.target.checked);
+        }
+
+        // Drag functionality
+        function startDrag(e) {
+            isDragging = true;
+            const rect = floatingWindow.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            floatingWindow.style.cursor = 'grabbing';
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            floatingWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+            floatingWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            floatingWindow.style.cursor = 'default';
+            saveWindowPosition();
+        }
+
+        // Handle keyboard
+        function handleKeyPress(e) {
+            if (e.key === 'r' || e.key === 'R') {
+                if (document.getElementById('resetPositionCheck').checked) {
+                    resetWindowPosition();
+                }
+            }
+            if (e.key === 'Escape') {
+                settingsPanel.style.display = 'none';
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Auto-request game data every 5 seconds
+        setInterval(requestGameData, 5000);
+    </script>
+</body>
+</html>
