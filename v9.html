@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Floating Window */
+        #floatingWindow {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            width: 450px;
+            height: 380px;
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 8px;
+            color: #e0e0ff;
+            z-index: 10000;
+            overflow: hidden;
+            resize: both;
+            min-width: 400px;
+            min-height: 350px;
+            max-width: 700px;
+            max-height: 600px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+        }
+
+        /* Window Header */
+        .window-header {
+            height: 35px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .window-title i {
+            color: #4a6fa5;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: #a0a0c0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Window Content */
+        .window-content {
+            height: calc(100% - 35px);
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: #2ecc71;
+        }
+
+        .status-dot.disconnected {
+            background: #e74c3c;
+        }
+
+        .status-dot.loading {
+            background: #f39c12;
+        }
+
+        /* Loan Stats */
+        .loan-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            background: rgba(30, 30, 40, 0.7);
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .loan .stat-value {
+            color: #e74c3c;
+        }
+
+        .paid .stat-value {
+            color: #2ecc71;
+        }
+
+        /* Balances */
+        .balances {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 12px 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            height: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4a6fa5;
+            border-radius: 9px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .progress-fill.completed {
+            background: #2ecc71;
+        }
+
+        /* Loan Presets */
+        .loan-presets {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .presets-title {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .preset-btn {
+            padding: 5px 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 100, 150, 0.3);
+            border-radius: 4px;
+            color: #e0e0ff;
+            cursor: pointer;
+            font-size: 0.7rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(74, 111, 165, 0.3);
+            border-color: #4a6fa5;
+        }
+
+        .preset-btn:active {
+            transform: scale(0.98);
+        }
+
+        .preset-small {
+            font-size: 0.65rem;
+            opacity: 0.8;
+        }
+
+        /* Info Text */
+        .info-text {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            text-align: center;
+            margin-top: 8px;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 280px;
+            background: rgba(10, 10, 20, 0.95);
+            border-radius: 8px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+            padding: 12px;
+            z-index: 9999;
+            display: none;
+            color: white !important;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 12px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white !important;
+        }
+
+        .settings-option {
+            margin-bottom: 10px;
+            color: white !important;
+        }
+
+        .settings-option label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: white !important;
+        }
+
+        .settings-option input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Hide window content when collapsed */
+        .collapsed .window-content {
+            display: none;
+        }
+
+        .collapsed {
+            height: 35px !important;
+            min-height: 35px !important;
+        }
+
+        /* Scrollbar Styling */
+        .window-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .window-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+        }
+
+        .window-content::-webkit-scrollbar-thumb {
+            background: rgba(100, 100, 150, 0.4);
+            border-radius: 2px;
+        }
+
+        /* Resize Handle */
+        #floatingWindow::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(135deg, transparent 50%, rgba(100, 100, 150, 0.4) 50%);
+            cursor: se-resize;
+        }
+
+        /* Simple button for settings panel */
+        .panel-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 8px;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .panel-btn:hover {
+            background: #166088;
+        }
+
+        /* Stats Summary */
+        .stats-summary {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div id="floatingWindow">
+        <div class="window-header" id="windowHeader">
+            <div class="window-title">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>Loan Tracker</span>
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot disconnected" id="statusDot"></div>
+                    <span id="statusText">Loading...</span>
+                </div>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn" id="settingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="control-btn" id="collapseBtn" title="Collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="window-content" id="windowContent">
+            <div class="loan-stats">
+                <div class="stat-card loan">
+                    <div class="stat-label">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Loan Balance</span>
+                    </div>
+                    <div class="stat-value" id="loanBalance">$0</div>
+                </div>
+                
+                <div class="stat-card paid">
+                    <div class="stat-label">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Total Paid</span>
+                    </div>
+                    <div class="stat-value" id="totalPaid">$0</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Loan Progress</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="stats-summary">
+                    <span id="remainingLabel">$0 remaining</span>
+                    <span id="paidToday">Today: $0</span>
+                </div>
+            </div>
+
+            <div class="balances">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-wallet"></i>
+                        <span>Wallet</span>
+                    </div>
+                    <div class="stat-value" id="walletBalance">$0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-university"></i>
+                        <span>Bank</span>
+                    </div>
+                    <div class="stat-value" id="bankBalance">$0</div>
+                </div>
+            </div>
+
+            <div class="info-text" id="dataSourceInfo">
+                <i class="fas fa-bolt"></i>
+                <span>Wallet/Bank: Live | Loan: Auto-tracked from income</span>
+            </div>
+
+            <div class="loan-presets">
+                <div class="presets-title">
+                    <i class="fas fa-bolt"></i>
+                    <span>Loan Presets</span>
+                </div>
+                <div class="presets-grid" id="presetsGrid">
+                    <!-- Preset buttons will be added by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <h3><i class="fas fa-cog"></i> Settings</h3>
+        
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="autoHide" checked>
+                <span>Auto-hide when pinned</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="showBalances" checked>
+                <span>Show Wallet/Bank</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="autoLoanCalc" checked>
+                <span>Auto-calculate loan payments</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="notifications" checked>
+                <span>Enable Notifications</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="alwaysOnTop">
+                <span>Always on Top</span>
+            </label>
+        </div>
+
+        <button class="panel-btn" id="resetPositionBtn">
+            <i class="fas fa-undo"></i>
+            Reset Position (R Key)
+        </button>
+
+        <button class="panel-btn" id="resetLoanBtn" style="background: #e74c3c;">
+            <i class="fas fa-trash"></i>
+            Reset Loan Data
+        </button>
+
+        <div style="margin-top: 12px; font-size: 0.75rem; color: #ffffff; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+            <p><strong>Auto Loan Calculation:</strong></p>
+            <p>• Loan takes 50% of your income</p>
+            <p>• When you earn money, 50% goes to loan</p>
+            <p>• Loan balance updates automatically</p>
+        </div>
+    </div>
+
+    <script>
+        // Loan Presets (Display Name: [baseAmount, actualLoanAmount])
+        const LOAN_PRESETS = [
+            ['50K', [50000, 62500]],
+            ['150K', [150000, 150000]],
+            ['250K', [250000, 250000]],
+            ['1M', [1000000, 1250000]],
+            ['2.5M', [2500000, 3120000]],
+            ['10M', [10000000, 12500000]],
+            ['25M', [25000000, 31250000]],
+            ['50M', [50000000, 62500000]],
+            ['100M', [100000000, 125000000]],
+            ['150M', [150000000, 187500000]]
+        ];
+
+        // State variables
+        let originalLoanAmount = 0;
+        let currentLoanAmount = 0;
+        let totalPaid = 0;
+        let todayPaid = 0;
+        let isDragging = false;
+        let isCollapsed = false;
+        let dragOffset = { x: 0, y: 0 };
+        let gameData = {};
+        let isInGame = false;
+        let lastWallet = 0;
+        let lastBank = 0;
+        let lastTotalMoney = 0;
+        let lastUpdateTime = Date.now();
+        let todayResetTime = 0;
+        let hasTriggeredLoanPaid = false;
+        let dataRefreshInterval = null;
+
+        // DOM Elements
+        const floatingWindow = document.getElementById('floatingWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        const windowContent = document.getElementById('windowContent');
+        const collapseBtn = document.getElementById('collapseBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const resetPositionBtn = document.getElementById('resetPositionBtn');
+        const resetLoanBtn = document.getElementById('resetLoanBtn');
+        const dataSourceInfo = document.getElementById('dataSourceInfo');
+        const presetsGrid = document.getElementById('presetsGrid');
+
+        // Initialize
+        function init() {
+            // Load saved settings
+            loadSettings();
+            
+            // Set up control buttons
+            collapseBtn.addEventListener('click', toggleCollapse);
+            settingsBtn.addEventListener('click', toggleSettings);
+            resetPositionBtn.addEventListener('click', resetWindowPosition);
+            resetLoanBtn.addEventListener('click', resetLoanData);
+            
+            // Set up settings checkboxes
+            document.getElementById('autoHide').addEventListener('change', toggleAutoHide);
+            document.getElementById('showBalances').addEventListener('change', toggleShowBalances);
+            document.getElementById('autoLoanCalc').addEventListener('change', toggleAutoLoanCalc);
+            document.getElementById('notifications').addEventListener('change', toggleNotifications);
+            document.getElementById('alwaysOnTop').addEventListener('change', toggleAlwaysOnTop);
+
+            // Close settings panel when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+
+            // Add R key listener for resetting position
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    resetWindowPosition();
+                }
+                if (e.key === 'Escape') {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+
+            // Setup message listener for in-game data
+            window.addEventListener('message', handleGameMessage);
+
+            // Initialize presets
+            initializePresets();
+
+            // Show initial data
+            updateDisplay();
+            
+            // Check for new day
+            checkDayReset();
+            
+            // Start data refresh interval
+            startDataRefresh();
+        }
+
+        // Start data refresh interval
+        function startDataRefresh() {
+            if (dataRefreshInterval) {
+                clearInterval(dataRefreshInterval);
+            }
+            
+            dataRefreshInterval = setInterval(() => {
+                if (isInGame) {
+                    // Request data from game
+                    window.parent.postMessage({ type: 'getData' }, '*');
+                }
+            }, 500);
+        }
+
+        // Initialize preset buttons
+        function initializePresets() {
+            presetsGrid.innerHTML = '';
+            
+            LOAN_PRESETS.forEach(([name, [displayAmount, actualAmount]]) => {
+                const button = document.createElement('button');
+                button.className = 'preset-btn';
+                button.innerHTML = `${name}<br><span class="preset-small">(${(actualAmount/1000).toFixed(0)}K)</span>`;
+                button.title = `Add $${displayAmount.toLocaleString()} (actually $${actualAmount.toLocaleString()}) to loan`;
+                button.dataset.amount = actualAmount;
+                button.dataset.display = displayAmount;
+                
+                button.addEventListener('click', () => {
+                    addLoan(actualAmount, displayAmount);
+                });
+                
+                presetsGrid.appendChild(button);
+            });
+        }
+
+        // Add loan from preset
+        function addLoan(amount, displayAmount) {
+            if (amount > 0) {
+                // Update current loan
+                currentLoanAmount += amount;
+                
+                // Update original loan if this is the first or largest loan
+                if (currentLoanAmount > originalLoanAmount) {
+                    originalLoanAmount = currentLoanAmount;
+                }
+                
+                // Reset loan paid flag since we're adding new loan
+                hasTriggeredLoanPaid = false;
+                
+                // Save data
+                saveData();
+                
+                // Update display
+                updateDisplay();
+                
+                // Show notification
+                if (document.getElementById('notifications').checked) {
+                    const formatter = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    showNotification(`Added loan: ${formatter.format(displayAmount || amount)}`);
+                }
+            }
+        }
+
+        // Handle messages from game client
+        function handleGameMessage(event) {
+            // Check if message is from the game
+            if (event.data && typeof event.data === 'object') {
+                // Check for game connection
+                if (event.data.fromTycoonScript === true) {
+                    isInGame = true;
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'In-Game';
+                    updateDataSourceInfo();
+                }
+                
+                // Process game data - FIXED: The data comes directly, not in a 'data' property
+                processGameData(event.data);
+            }
+        }
+
+        // Process game data and calculate loan payments
+        function processGameData(newData) {
+            const now = Date.now();
+            
+            // Extract wallet and bank data - FIXED: Direct access, not newData.data
+            const wallet = parseFloat(newData.wallet) || 0;
+            const bank = parseFloat(newData.bank) || 0;
+            
+            // Format and display wallet/bank
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            document.getElementById('walletBalance').textContent = formatter.format(wallet);
+            document.getElementById('bankBalance').textContent = formatter.format(bank);
+            
+            // Calculate loan payments if auto-calc is enabled and we have loan
+            if (document.getElementById('autoLoanCalc').checked && currentLoanAmount > 0) {
+                calculateLoanPayments(wallet, bank, now);
+            }
+            
+            // Update data source info
+            updateDataSourceInfo();
+            
+            // Store last values
+            gameData = newData;
+            
+            // Check if loan is paid off
+            checkLoanPaid();
+        }
+
+        // Calculate loan payments based on income (50% rule)
+        function calculateLoanPayments(wallet, bank, timestamp) {
+            const currentTotal = wallet + bank;
+            
+            // Initialize last values if this is the first update
+            if (lastTotalMoney === 0) {
+                lastWallet = wallet;
+                lastBank = bank;
+                lastTotalMoney = currentTotal;
+                lastUpdateTime = timestamp;
+                return;
+            }
+            
+            // Calculate time since last update
+            const timeDiff = timestamp - lastUpdateTime;
+            
+            // Only process if reasonable time has passed (more than 500ms)
+            if (timeDiff > 500) {
+                // Calculate income (increase in total money)
+                const income = currentTotal - lastTotalMoney;
+                
+                // Only process positive income (money earned)
+                if (income > 0) {
+                    // Calculate loan payment (50% of income)
+                    const loanPayment = income * 0.5;
+                    
+                    // Update loan balance
+                    const oldLoanAmount = currentLoanAmount;
+                    currentLoanAmount = Math.max(0, currentLoanAmount - loanPayment);
+                    
+                    // Update total paid
+                    const actualPayment = oldLoanAmount - currentLoanAmount;
+                    if (actualPayment > 0) {
+                        totalPaid += actualPayment;
+                        todayPaid += actualPayment;
+                        
+                        // Save data
+                        saveData();
+                        
+                        // Update display
+                        updateDisplay();
+                        
+                        // Show notification for significant payments
+                        if (document.getElementById('notifications').checked && actualPayment >= 1000) {
+                            const formatter = new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            });
+                            showNotification(`Loan payment: ${formatter.format(actualPayment)}`);
+                        }
+                    }
+                }
+            }
+            
+            // Update last values
+            lastWallet = wallet;
+            lastBank = bank;
+            lastTotalMoney = currentTotal;
+            lastUpdateTime = timestamp;
+        }
+
+        // Check if loan is fully paid
+        function checkLoanPaid() {
+            if (originalLoanAmount > 0 && !hasTriggeredLoanPaid) {
+                const progress = (totalPaid / originalLoanAmount) * 100;
+                
+                if (progress >= 100) {
+                    // Reset loan balance to 0
+                    currentLoanAmount = 0;
+                    
+                    hasTriggeredLoanPaid = true;
+                    
+                    // Show loan paid popup
+                    showLoanPaidPopup();
+                    
+                    // Update progress bar to completed color
+                    document.getElementById('progressFill').classList.add('completed');
+                    
+                    // Save the reset state
+                    saveData();
+                    
+                    // Update display
+                    updateDisplay();
+                    
+                    // Show notification
+                    if (document.getElementById('notifications').checked) {
+                        showNotification('Loan fully paid! Congratulations! Loan balance reset to $0.');
+                    }
+                }
+            }
+        }
+
+        // Show loan paid popup and close menus
+        function showLoanPaidPopup() {
+            if (isInGame) {
+                // Send forceMenuBack 5 times
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        window.parent.postMessage({ type: 'forceMenuBack' }, '*');
+                    }, i * 100);
+                }
+                
+                // Show popup message
+                setTimeout(() => {
+                    window.parent.postMessage({ 
+                        type: 'popup', 
+                        title: 'Loan Paid', 
+                        text: 'Congratulations! Your loan has been fully paid off! Loan balance reset to $0.' 
+                    }, '*');
+                }, 600);
+            }
+        }
+
+        // Update data source info
+        function updateDataSourceInfo() {
+            if (isInGame) {
+                dataSourceInfo.innerHTML = '<i class="fas fa-bolt"></i> <span>Wallet/Bank: Live | Loan: Auto-tracked from income</span>';
+                dataSourceInfo.style.color = '#2ecc71';
+            } else {
+                dataSourceInfo.innerHTML = '<i class="fas fa-info-circle"></i> <span>Load via F1 menu in-game for live tracking</span>';
+                dataSourceInfo.style.color = '#f39c12';
+            }
+        }
+
+        // Update all displays
+        function updateDisplay() {
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            // Update loan balance
+            document.getElementById('loanBalance').textContent = formatter.format(currentLoanAmount);
+            
+            // Update total paid
+            document.getElementById('totalPaid').textContent = formatter.format(totalPaid);
+            
+            // Calculate and update progress
+            let progress = 0;
+            let remaining = 0;
+            
+            if (originalLoanAmount > 0) {
+                progress = Math.min(100, (totalPaid / originalLoanAmount) * 100);
+                remaining = currentLoanAmount;
+            }
+            
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressPercentage').textContent = `${progress.toFixed(1)}%`;
+            document.getElementById('remainingLabel').textContent = `${formatter.format(remaining)} remaining`;
+            document.getElementById('paidToday').textContent = `Today: ${formatter.format(todayPaid)}`;
+            
+            // Update progress bar color
+            const progressFill = document.getElementById('progressFill');
+            if (progress >= 100) {
+                progressFill.classList.add('completed');
+            } else {
+                progressFill.classList.remove('completed');
+            }
+        }
+
+        // Check if it's a new day and reset today's payment
+        function checkDayReset() {
+            const now = new Date();
+            const today = now.toDateString();
+            const lastReset = localStorage.getItem('todayReset');
+            
+            if (lastReset !== today) {
+                todayPaid = 0;
+                localStorage.setItem('todayReset', today);
+                localStorage.setItem('todayPaid', '0');
+                updateDisplay();
+            }
+        }
+
+        // Reset loan data
+        function resetLoanData() {
+            if (confirm('Are you sure you want to reset all loan data? This cannot be undone.')) {
+                originalLoanAmount = 0;
+                currentLoanAmount = 0;
+                totalPaid = 0;
+                todayPaid = 0;
+                hasTriggeredLoanPaid = false;
+                
+                // Reset progress bar
+                document.getElementById('progressFill').classList.remove('completed');
+                
+                saveData();
+                updateDisplay();
+                
+                showNotification('Loan data has been reset');
+                
+                // Close settings panel
+                settingsPanel.style.display = 'none';
+            }
+        }
+
+        // Save data
+        function saveData() {
+            localStorage.setItem('originalLoanAmount', originalLoanAmount.toString());
+            localStorage.setItem('currentLoanAmount', currentLoanAmount.toString());
+            localStorage.setItem('totalPaid', totalPaid.toString());
+            localStorage.setItem('todayPaid', todayPaid.toString());
+            localStorage.setItem('hasTriggeredLoanPaid', hasTriggeredLoanPaid.toString());
+        }
+
+        // Load settings
+        function loadSettings() {
+            // Load window position
+            loadWindowPosition();
+            
+            // Load loan data
+            originalLoanAmount = parseFloat(localStorage.getItem('originalLoanAmount') || 0);
+            currentLoanAmount = parseFloat(localStorage.getItem('currentLoanAmount') || 0);
+            totalPaid = parseFloat(localStorage.getItem('totalPaid') || 0);
+            todayPaid = parseFloat(localStorage.getItem('todayPaid') || 0);
+            hasTriggeredLoanPaid = localStorage.getItem('hasTriggeredLoanPaid') === 'true';
+            
+            // Check day reset
+            checkDayReset();
+            
+            // Load settings
+            const autoHide = localStorage.getItem('autoHide');
+            const showBalances = localStorage.getItem('showBalances');
+            const autoLoanCalc = localStorage.getItem('autoLoanCalc');
+            const notifications = localStorage.getItem('notifications');
+            const alwaysOnTop = localStorage.getItem('alwaysOnTop');
+            
+            document.getElementById('autoHide').checked = autoHide !== 'false';
+            document.getElementById('showBalances').checked = showBalances !== 'false';
+            document.getElementById('autoLoanCalc').checked = autoLoanCalc !== 'false';
+            document.getElementById('notifications').checked = notifications !== 'false';
+            document.getElementById('alwaysOnTop').checked = alwaysOnTop === 'true';
+            
+            // Apply settings
+            if (alwaysOnTop === 'true') {
+                floatingWindow.style.zIndex = '10000';
+            }
+            if (showBalances === 'false') {
+                document.querySelector('.balances').style.display = 'none';
+            }
+            
+            // Apply loan paid styling if already paid
+            if (originalLoanAmount > 0) {
+                const progress = (totalPaid / originalLoanAmount) * 100;
+                if (progress >= 100) {
+                    document.getElementById('progressFill').classList.add('completed');
+                    currentLoanAmount = 0; // Reset loan balance
+                }
+            }
+        }
+
+        // Drag functionality
+        function startDrag(e) {
+            if (e.target.closest('.control-btn')) return;
+            
+            isDragging = true;
+            const rect = floatingWindow.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            
+            floatingWindow.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            floatingWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+            floatingWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            floatingWindow.style.cursor = 'default';
+            saveWindowPosition();
+        }
+
+        // Save window position and size
+        function saveWindowPosition() {
+            const rect = floatingWindow.getBoundingClientRect();
+            localStorage.setItem('windowX', rect.left);
+            localStorage.setItem('windowY', rect.top);
+            localStorage.setItem('windowWidth', rect.width);
+            localStorage.setItem('windowHeight', rect.height);
+        }
+
+        // Load window position and size
+        function loadWindowPosition() {
+            const x = localStorage.getItem('windowX');
+            const y = localStorage.getItem('windowY');
+            const width = localStorage.getItem('windowWidth');
+            const height = localStorage.getItem('windowHeight');
+            
+            if (x && y) {
+                floatingWindow.style.left = x + 'px';
+                floatingWindow.style.top = y + 'px';
+            }
+            
+            if (width && height) {
+                floatingWindow.style.width = width + 'px';
+                floatingWindow.style.height = height + 'px';
+            }
+        }
+
+        // Reset window position
+        function resetWindowPosition() {
+            floatingWindow.style.left = '50px';
+            floatingWindow.style.top = '50px';
+            floatingWindow.style.width = '450px';
+            floatingWindow.style.height = '380px';
+            
+            localStorage.removeItem('windowX');
+            localStorage.removeItem('windowY');
+            localStorage.removeItem('windowWidth');
+            localStorage.removeItem('windowHeight');
+            
+            showNotification('Window position reset');
+        }
+
+        // Toggle collapse
+        function toggleCollapse() {
+            isCollapsed = !isCollapsed;
+            floatingWindow.classList.toggle('collapsed');
+            collapseBtn.innerHTML = isCollapsed ? 
+                '<i class="fas fa-plus"></i>' : 
+                '<i class="fas fa-minus"></i>';
+            collapseBtn.title = isCollapsed ? 'Expand' : 'Collapse';
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            settingsPanel.style.display = 
+                settingsPanel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Settings toggles
+        function toggleAutoHide(e) {
+            localStorage.setItem('autoHide', e.target.checked);
+        }
+
+        function toggleShowBalances(e) {
+            localStorage.setItem('showBalances', e.target.checked);
+            document.querySelector('.balances').style.display = e.target.checked ? 'grid' : 'none';
+        }
+
+        function toggleAutoLoanCalc(e) {
+            localStorage.setItem('autoLoanCalc', e.target.checked);
+        }
+
+        function toggleNotifications(e) {
+            localStorage.setItem('notifications', e.target.checked.toString());
+        }
+
+        function toggleAlwaysOnTop(e) {
+            localStorage.setItem('alwaysOnTop', e.target.checked);
+            floatingWindow.style.zIndex = e.target.checked ? '10000' : '9999';
+        }
+
+        // Show notification
+        function showNotification(message, isError = false) {
+            if (!document.getElementById('notifications').checked && !isError) return;
+            
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 8px 12px;
+                background: ${isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(30, 30, 40, 0.9)'};
+                color: white;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                z-index: 10001;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Set up drag event listeners
+        windowHeader.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
+
+        // Save window position on resize
+        floatingWindow.addEventListener('mouseup', saveWindowPosition);
+
+        // Check for new day every hour
+        setInterval(checkDayReset, 3600000);
+    </script>
+</body>
+</html>
