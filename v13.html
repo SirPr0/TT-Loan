@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TT Loan Tracker</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --primary-dark: #166088;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --bg-dark: rgba(15, 20, 30, 0.92);
+            --bg-darker: rgba(10, 15, 25, 0.95);
+            --border-color: rgba(60, 120, 200, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #a0c0e0;
+            --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --transition-speed: 0.2s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Minimized Mode Button */
+        #minimizedBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: all var(--transition-speed) ease;
+            transform: scale(1);
+            animation: pulse 2s infinite;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(74, 111, 165, 0.3);
+        }
+
+        #minimizedBtn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(74, 111, 165, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Floating Window */
+        #floatingWindow {
+            position: fixed;
+            top: 100px;
+            left: 100px;
+            width: 450px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 10000;
+            transition: all var(--transition-speed) ease;
+            transform: translate3d(0, 0, 0);
+            will-change: transform;
+            min-height: 200px;
+            max-height: 80vh;
+            resize: both;
+        }
+
+        /* Window Header */
+        .window-header {
+            background: linear-gradient(135deg, rgba(30, 60, 100, 0.9), rgba(15, 30, 50, 0.9));
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+        }
+
+        /* Window Content */
+        .window-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Mode: FULL */
+        .full-mode {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .full-mode .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .full-mode .stats-grid .stat-card {
+            background: rgba(20, 30, 40, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid rgba(60, 120, 200, 0.2);
+        }
+
+        .full-mode .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 8px 0 4px;
+            color: var(--text-primary) !important;
+        }
+
+        .full-mode .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Mode: MINI */
+        .mini-mode {
+            opacity: 1;
+            pointer-events: all;
+            width: 350px !important;
+        }
+
+        .mini-mode .stats-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mini-mode .stat-card {
+            background: rgba(20, 30, 40, 0.6);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(60, 120, 200, 0.2);
+        }
+
+        .mini-mode .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 6px 0 4px;
+            color: var(--text-primary) !important;
+        }
+
+        .mini-mode .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Mode: MINIMIZED */
+        .minimized-mode {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0);
+        }
+
+        /* Common Components */
+        .progress-container {
+            background: rgba(20, 30, 40, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid rgba(60, 120, 200, 0.2);
+            margin-top: 4px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .progress-percentage {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(20, 30, 40, 0.6);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: var(--danger-color);
+        }
+
+        .status-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a7fb5, #267098);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Hide elements based on mode */
+        .mini-mode .config-section,
+        .mini-mode .history-section,
+        .mini-mode .full-only,
+        .mini-mode .status-indicator {
+            display: none;
+        }
+
+        /* History Section */
+        .history-section {
+            background: rgba(20, 30, 40, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid rgba(60, 120, 200, 0.2);
+            margin-top: 8px;
+        }
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-date {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .history-amount {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary) !important;
+        }
+
+        /* Config Section */
+        .config-section {
+            background: rgba(20, 30, 40, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid rgba(60, 120, 200, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.2);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(74, 111, 165, 0.5);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(74, 111, 165, 0.7);
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .bounce {
+            animation: bounce 0.5s ease infinite;
+        }
+
+        /* Responsive Button Scaling */
+        @media (min-width: 1920px) {
+            #minimizedBtn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+                bottom: 30px;
+                right: 30px;
+            }
+        }
+
+        @media (max-width: 1366px) {
+            #minimizedBtn {
+                width: 55px;
+                height: 55px;
+                font-size: 22px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #minimizedBtn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            .mini-mode {
+                width: 300px !important;
+            }
+        }
+
+        /* Resize Handle */
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            cursor: se-resize;
+            z-index: 10001;
+        }
+
+        /* Fix for all number colors */
+        .stat-value,
+        #currentDebt,
+        #amountPaid,
+        #originalLoan,
+        #storageCards,
+        .history-amount,
+        .money-amount {
+            color: var(--text-primary) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Minimized Mode Button -->
+    <div id="minimizedBtn" title="Open Loan Tracker">💰</div>
+
+    <!-- Floating Window -->
+    <div id="floatingWindow" class="full-mode">
+        <div class="window-header" id="windowHeader">
+            <div class="window-title">
+                <span>🏦 TT Loan Tracker</span>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn" id="modeToggle" title="Switch Mode">↻</button>
+                <button class="control-btn" id="minimizeBtn" title="Minimize">−</button>
+            </div>
+        </div>
+
+        <div class="window-content">
+            <!-- Status Indicator -->
+            <div class="status-indicator full-only">
+                <div class="status-dot disconnected" id="statusDot"></div>
+                <span class="status-text" id="statusText">Waiting for game data...</span>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">🏛️ Current Debt</div>
+                    <div class="stat-value money-amount" id="currentDebt">$0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">💰 Amount Paid</div>
+                    <div class="stat-value money-amount" id="amountPaid">$0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">💳 Original Loan</div>
+                    <div class="stat-value money-amount" id="originalLoan">$0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">🎫 Storage Cards</div>
+                    <div class="stat-value" id="storageCards">0</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-header">
+                    <div class="progress-title">📊 Repayment Progress</div>
+                    <div class="progress-percentage" id="progressPercentage">0%</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons full-only">
+                <button class="btn btn-primary" id="refreshBtn">
+                    🔄 Refresh
+                </button>
+                <button class="btn btn-secondary" id="resetBtn">
+                    🔧 Reset Tracking
+                </button>
+            </div>
+
+            <!-- Loan History -->
+            <div class="history-section full-only">
+                <div class="history-title">
+                    📋 Loan History
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- History items will be added here -->
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="config-section full-only">
+                <div class="form-group">
+                    <label class="form-label">
+                        🔑 Private Key (Optional)
+                    </label>
+                    <input type="password" class="form-input" id="privateKey" 
+                           placeholder="Enter private API key for web version">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        👤 User ID (Optional)
+                    </label>
+                    <input type="text" class="form-input" id="userId" 
+                           placeholder="Enter vRP ID for web version">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resize Handle -->
+        <div class="resize-handle"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // Configuration & Constants
+        // ============================================
+        const LOANS = [
+            { amount: 50000, debt: 62500, cards: 1, name: "Beginner Loan" },
+            { amount: 150000, debt: 187500, cards: 3, name: "Starter Loan" },
+            { amount: 250000, debt: 312500, cards: 5, name: "Discord Loan" },
+            { amount: 1000000, debt: 1250000, cards: 20, name: "Millionaire Loan" },
+            { amount: 2500000, debt: 3120000, cards: 50, name: "Upcoming Tycoon Loan" },
+            { amount: 10000000, debt: 12500000, cards: 200, name: "Medium Loan" },
+            { amount: 25000000, debt: 31250000, cards: 500, name: "Heavy Loan" },
+            { amount: 50000000, debt: 62500000, cards: 1000, name: "Long-term Loan" },
+            { amount: 100000000, debt: 125000000, cards: 2000, name: "Sellout Loan" },
+            { amount: 150000000, debt: 187500000, cards: 3000, name: "Business Tycoon Loan" }
+        ];
+
+        // ============================================
+        // State Management
+        // ============================================
+        const state = {
+            // Tracking
+            currentDebt: 0,
+            originalLoan: 0,
+            amountPaid: 0,
+            storageCards: 0,
+            loanHistory: [],
+            lastGameData: null,
+            
+            // UI
+            mode: 'full', // 'full', 'mini', 'minimized'
+            windowPosition: { x: 100, y: 100 },
+            windowSize: { width: 450, height: 'auto' },
+            
+            // Connection
+            isConnected: false,
+            apiCharges: 0,
+            lastUpdate: null,
+            
+            // Settings
+            useAPI: false,
+            privateKey: '',
+            userId: ''
+        };
+
+        // ============================================
+        // DOM Elements
+        // ============================================
+        const floatingWindow = document.getElementById('floatingWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        const minimizedBtn = document.getElementById('minimizedBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const currentDebtEl = document.getElementById('currentDebt');
+        const amountPaidEl = document.getElementById('amountPaid');
+        const originalLoanEl = document.getElementById('originalLoan');
+        const storageCardsEl = document.getElementById('storageCards');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const historyList = document.getElementById('historyList');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const modeToggle = document.getElementById('modeToggle');
+        const minimizeBtn = document.getElementById('minimizeBtn');
+
+        // ============================================
+        // Initialization
+        // ============================================
+        function init() {
+            loadState();
+            setupEventListeners();
+            setupDragAndResize();
+            updateUI();
+            setupGameListener();
+            
+            // Check if running as user app
+            if (window.parent !== window) {
+                state.useAPI = false;
+                updateStatus(true, 'Connected to game');
+            } else {
+                state.useAPI = true;
+                setupAPI();
+            }
+        }
+
+        // ============================================
+        // Game Integration (User App Mode)
+        // ============================================
+        function setupGameListener() {
+            window.addEventListener('message', handleGameMessage);
+            
+            // Request initial data
+            if (window.parent !== window) {
+                setTimeout(() => {
+                    window.parent.postMessage({ type: 'getData' }, '*');
+                }, 500);
+            }
+        }
+
+        function handleGameMessage(event) {
+            const data = event.data;
+            
+            if (typeof data === 'object' && data) {
+                // Store the game data
+                state.lastGameData = data;
+                
+                // Extract loan information
+                if (data.loan !== undefined) {
+                    const newDebt = Number(data.loan) || 0;
+                    
+                    // Check if this is the first time detecting a loan
+                    if (state.currentDebt === 0 && newDebt > 0) {
+                        // New loan detected
+                        handleNewLoan(newDebt);
+                    } else if (state.currentDebt > 0 && newDebt < state.currentDebt) {
+                        // Payment detected
+                        const paymentAmount = state.currentDebt - newDebt;
+                        handlePayment(paymentAmount, newDebt);
+                    } else if (state.currentDebt > 0 && newDebt === 0) {
+                        // Loan fully paid
+                        handleLoanPaid();
+                    }
+                    
+                    state.currentDebt = newDebt;
+                }
+                
+                // Extract wallet and bank if available
+                if (data.wallet !== undefined) {
+                    state.wallet = Number(data.wallet) || 0;
+                }
+                if (data.bank !== undefined) {
+                    state.bank = Number(data.bank) || 0;
+                }
+                
+                // Update status
+                updateStatus(true, 'Connected to game');
+                updateDisplay();
+                
+                // Save state
+                saveState();
+            }
+        }
+
+        // ============================================
+        // Loan Management
+        // ============================================
+        function handleNewLoan(debtAmount) {
+            // Find the closest loan match
+            const loan = LOANS.find(l => Math.abs(l.debt - debtAmount) / l.debt < 0.1) || 
+                         LOANS.reduce((prev, curr) => 
+                             Math.abs(curr.debt - debtAmount) < Math.abs(prev.debt - debtAmount) ? curr : prev);
+            
+            state.originalLoan = loan.debt;
+            state.storageCards = loan.cards;
+            state.amountPaid = 0;
+            
+            // Add to history
+            addHistoryEntry('New Loan', debtAmount, loan.name);
+            
+            console.log(`New loan detected: ${loan.name}, Debt: $${debtAmount}, Cards: ${loan.cards}`);
+        }
+
+        function handlePayment(paymentAmount, newDebt) {
+            state.amountPaid += paymentAmount;
+            
+            // Calculate progress
+            const progress = Math.min(100, (state.amountPaid / state.originalLoan) * 100);
+            
+            // Add to history
+            addHistoryEntry('Payment', -paymentAmount);
+            
+            console.log(`Payment detected: $${paymentAmount}, New debt: $${newDebt}, Progress: ${progress.toFixed(1)}%`);
+            
+            // Check if loan is fully paid
+            if (newDebt <= 0 || progress >= 100) {
+                setTimeout(() => handleLoanPaid(), 100);
+            }
+        }
+
+        function handleLoanPaid() {
+            // Calculate exact storage cards earned
+            const cardsEarned = state.storageCards;
+            
+            // Add to history
+            addHistoryEntry('Loan Paid', 0, `Earned ${cardsEarned} storage cards`);
+            
+            // Show notification in game
+            showOneliner(`🎉 Loan Paid! You earned ${cardsEarned} storage cards!`);
+            
+            // Close menus in game (simulate ESC key 5 times)
+            if (window.parent !== window) {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        window.parent.postMessage({ type: 'forceMenuBack' }, '*');
+                    }, i * 100);
+                }
+            }
+            
+            // Reset tracking for new loan after a delay
+            setTimeout(() => {
+                state.currentDebt = 0;
+                state.originalLoan = 0;
+                state.amountPaid = 0;
+                state.storageCards = 0;
+                updateDisplay();
+                saveState();
+            }, 2000);
+            
+            console.log(`Loan fully paid! Earned ${cardsEarned} storage cards.`);
+        }
+
+        // ============================================
+        // UI Updates
+        // ============================================
+        function updateDisplay() {
+            // Format currency
+            const formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            // Update values (ALL NUMBERS ARE NOW WHITE)
+            currentDebtEl.textContent = formatter.format(state.currentDebt);
+            amountPaidEl.textContent = formatter.format(state.amountPaid);
+            originalLoanEl.textContent = formatter.format(state.originalLoan);
+            storageCardsEl.textContent = state.storageCards.toLocaleString();
+            
+            // Update progress
+            const progress = state.originalLoan > 0 ? 
+                Math.min(100, (state.amountPaid / state.originalLoan) * 100) : 0;
+            
+            progressFill.style.width = `${progress}%`;
+            progressPercentage.textContent = `${progress.toFixed(1)}%`;
+            
+            // Update progress bar color
+            if (progress < 30) {
+                progressFill.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+            } else if (progress < 70) {
+                progressFill.style.background = 'linear-gradient(90deg, #f39c12, #d35400)';
+            } else if (progress < 100) {
+                progressFill.style.background = 'linear-gradient(90deg, var(--primary-color), var(--primary-dark))';
+            } else {
+                progressFill.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)';
+            }
+            
+            // Update last update time
+            state.lastUpdate = new Date();
+        }
+
+        function updateStatus(connected, message) {
+            state.isConnected = connected;
+            
+            statusDot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
+            statusText.textContent = message;
+            
+            if (!connected && state.useAPI) {
+                statusText.textContent += ' (Using API Mode)';
+            }
+        }
+
+        function updateUI() {
+            // Remove all mode classes
+            floatingWindow.classList.remove('full-mode', 'mini-mode', 'minimized-mode');
+            
+            // Add current mode class
+            floatingWindow.classList.add(`${state.mode}-mode`);
+            
+            // Show/hide minimized button
+            minimizedBtn.style.display = state.mode === 'minimized' ? 'flex' : 'none';
+            
+            // Update window position and size
+            floatingWindow.style.left = `${state.windowPosition.x}px`;
+            floatingWindow.style.top = `${state.windowPosition.y}px`;
+            
+            if (state.windowSize.width) {
+                floatingWindow.style.width = `${state.windowSize.width}px`;
+            }
+            
+            if (state.windowSize.height && state.windowSize.height !== 'auto') {
+                floatingWindow.style.height = `${state.windowSize.height}px`;
+            } else {
+                floatingWindow.style.height = 'auto';
+            }
+            
+            // Update history
+            updateHistoryList();
+            
+            // Update display
+            updateDisplay();
+        }
+
+        function updateHistoryList() {
+            historyList.innerHTML = '';
+            
+            if (state.loanHistory.length === 0) {
+                historyList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No loan history yet</div>';
+                return;
+            }
+            
+            // Show only last 10 entries
+            const recentHistory = state.loanHistory.slice(-10).reverse();
+            
+            recentHistory.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                
+                const date = new Date(entry.timestamp).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                const amount = entry.amount > 0 ? 
+                    `+$${entry.amount.toLocaleString()}` : 
+                    entry.amount < 0 ? `-$${Math.abs(entry.amount).toLocaleString()}` : '$0';
+                
+                item.innerHTML = `
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-primary); margin-bottom: 2px;">
+                            ${entry.type}
+                        </div>
+                        <div class="history-date">${date}</div>
+                    </div>
+                    <div>
+                        <div class="history-amount" style="color: ${entry.amount > 0 ? '#2ecc71' : entry.amount < 0 ? '#e74c3c' : '#4a6fa5'}">
+                            ${amount}
+                        </div>
+                        ${entry.details ? `<div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">${entry.details}</div>` : ''}
+                    </div>
+                `;
+                
+                historyList.appendChild(item);
+            });
+        }
+
+        function addHistoryEntry(type, amount, details = '') {
+            const entry = {
+                timestamp: new Date().toISOString(),
+                type,
+                amount,
+                details
+            };
+            
+            state.loanHistory.push(entry);
+            
+            // Keep only last 50 entries
+            if (state.loanHistory.length > 50) {
+                state.loanHistory = state.loanHistory.slice(-50);
+            }
+            
+            updateHistoryList();
+            saveState();
+        }
+
+        // ============================================
+        // Mode Management
+        // ============================================
+        function getNextMode(currentMode) {
+            const modes = ['full', 'mini', 'minimized'];
+            const currentIndex = modes.indexOf(currentMode);
+            return modes[(currentIndex + 1) % modes.length];
+        }
+
+        function switchMode() {
+            const oldMode = state.mode;
+            state.mode = getNextMode(state.mode);
+            
+            // Save window size when switching from full/mini to minimized
+            if (oldMode !== 'minimized' && state.mode === 'minimized') {
+                const rect = floatingWindow.getBoundingClientRect();
+                state.windowSize = { 
+                    width: rect.width, 
+                    height: rect.height 
+                };
+            }
+            
+            updateUI();
+            saveState();
+        }
+
+        function toggleMinimize() {
+            if (state.mode !== 'minimized') {
+                // Save current size
+                const rect = floatingWindow.getBoundingClientRect();
+                state.windowSize = { 
+                    width: rect.width, 
+                    height: rect.height 
+                };
+                
+                state.mode = 'minimized';
+            } else {
+                state.mode = 'full';
+            }
+            
+            updateUI();
+            saveState();
+        }
+
+        // ============================================
+        // Game Communication
+        // ============================================
+        function showOneliner(text) {
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'oneliner', text: text }, '*');
+            } else {
+                // Fallback for standalone mode
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    z-index: 10001;
+                    animation: fadeInOut 3s ease;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid var(--border-color);
+                `;
+                notification.textContent = text;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'fadeOut 0.5s ease';
+                    setTimeout(() => notification.remove(), 500);
+                }, 2500);
+                
+                // Add CSS animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                        10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                        90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                    }
+                    @keyframes fadeOut {
+                        from { opacity: 1; }
+                        to { opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        function refreshData() {
+            if (window.parent !== window) {
+                // Request fresh data from game
+                window.parent.postMessage({ type: 'getData' }, '*');
+                showOneliner('🔄 Refreshing loan data...');
+            }
+        }
+
+        // ============================================
+        // State Persistence
+        // ============================================
+        function saveState() {
+            const saveData = {
+                tracking: {
+                    currentDebt: state.currentDebt,
+                    originalLoan: state.originalLoan,
+                    amountPaid: state.amountPaid,
+                    storageCards: state.storageCards,
+                    loanHistory: state.loanHistory
+                },
+                ui: {
+                    mode: state.mode,
+                    windowPosition: state.windowPosition,
+                    windowSize: state.windowSize
+                },
+                settings: {
+                    privateKey: state.privateKey,
+                    userId: state.userId
+                }
+            };
+            
+            try {
+                localStorage.setItem('ttLoanTrackerState', JSON.stringify(saveData));
+            } catch (error) {
+                console.error('Failed to save state:', error);
+            }
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('ttLoanTrackerState');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    // Load tracking data
+                    if (data.tracking) {
+                        state.currentDebt = data.tracking.currentDebt || 0;
+                        state.originalLoan = data.tracking.originalLoan || 0;
+                        state.amountPaid = data.tracking.amountPaid || 0;
+                        state.storageCards = data.tracking.storageCards || 0;
+                        state.loanHistory = data.tracking.loanHistory || [];
+                    }
+                    
+                    // Load UI data
+                    if (data.ui) {
+                        state.mode = data.ui.mode || 'full';
+                        state.windowPosition = data.ui.windowPosition || { x: 100, y: 100 };
+                        state.windowSize = data.ui.windowSize || { width: 450, height: 'auto' };
+                    }
+                    
+                    // Load settings
+                    if (data.settings) {
+                        state.privateKey = data.settings.privateKey || '';
+                        state.userId = data.settings.userId || '';
+                        
+                        // Update input fields
+                        document.getElementById('privateKey').value = state.privateKey;
+                        document.getElementById('userId').value = state.userId;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load state:', error);
+            }
+        }
+
+        function resetTracking() {
+            // NO CONFIRMATION - Just reset
+            state.currentDebt = 0;
+            state.originalLoan = 0;
+            state.amountPaid = 0;
+            state.storageCards = 0;
+            state.loanHistory = [];
+            
+            updateDisplay();
+            updateHistoryList();
+            saveState();
+            showOneliner('Loan tracking reset');
+        }
+
+        // ============================================
+        // Window Management (Smooth Drag & Resize)
+        // ============================================
+        function setupDragAndResize() {
+            let isDragging = false;
+            let isResizing = false;
+            let dragOffset = { x: 0, y: 0 };
+            let resizeStart = { x: 0, y: 0, width: 0, height: 0 };
+            
+            // Use requestAnimationFrame for smooth dragging
+            let animationFrameId = null;
+            
+            // Drag functionality
+            windowHeader.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            // Resize functionality
+            const resizeHandle = document.querySelector('.resize-handle');
+            resizeHandle.addEventListener('mousedown', startResize);
+            
+            function startDrag(e) {
+                if (e.target.closest('.control-btn')) return;
+                
+                isDragging = true;
+                const rect = floatingWindow.getBoundingClientRect();
+                dragOffset = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                floatingWindow.style.cursor = 'grabbing';
+                floatingWindow.style.transition = 'none'; // Disable transitions during drag
+                e.preventDefault();
+            }
+            
+            function drag(e) {
+                if (!isDragging && !isResizing) return;
+                
+                // Use requestAnimationFrame for smoother updates
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                
+                animationFrameId = requestAnimationFrame(() => {
+                    if (isDragging) {
+                        const newX = e.clientX - dragOffset.x;
+                        const newY = e.clientY - dragOffset.y;
+                        
+                        // Update window position directly with transform for smoother movement
+                        floatingWindow.style.transform = `translate3d(0, 0, 0)`;
+                        floatingWindow.style.left = `${newX}px`;
+                        floatingWindow.style.top = `${newY}px`;
+                    }
+                    
+                    if (isResizing) {
+                        const deltaX = e.clientX - resizeStart.x;
+                        const deltaY = e.clientY - resizeStart.y;
+                        
+                        const newWidth = Math.max(300, Math.min(800, resizeStart.width + deltaX));
+                        const newHeight = Math.max(200, Math.min(600, resizeStart.height + deltaY));
+                        
+                        floatingWindow.style.width = `${newWidth}px`;
+                        floatingWindow.style.height = `${newHeight}px`;
+                    }
+                });
+            }
+            
+            function stopDrag() {
+                if (!isDragging && !isResizing) return;
+                
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                
+                if (isDragging) {
+                    isDragging = false;
+                    floatingWindow.style.cursor = 'default';
+                    floatingWindow.style.transition = `all var(--transition-speed) ease`; // Re-enable transitions
+                    
+                    // Update state with final position
+                    state.windowPosition = {
+                        x: parseFloat(floatingWindow.style.left),
+                        y: parseFloat(floatingWindow.style.top)
+                    };
+                    
+                    saveState();
+                }
+                
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = 'default';
+                    
+                    // Update state with final size
+                    const rect = floatingWindow.getBoundingClientRect();
+                    state.windowSize = { 
+                        width: rect.width, 
+                        height: rect.height 
+                    };
+                    
+                    saveState();
+                }
+            }
+            
+            function startResize(e) {
+                isResizing = true;
+                const rect = floatingWindow.getBoundingClientRect();
+                resizeStart = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    width: rect.width,
+                    height: rect.height
+                };
+                
+                document.body.style.cursor = 'se-resize';
+                e.preventDefault();
+            }
+            
+            // Clean up on window blur
+            window.addEventListener('blur', () => {
+                isDragging = false;
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                floatingWindow.style.cursor = 'default';
+                floatingWindow.style.transition = `all var(--transition-speed) ease`;
+            });
+        }
+
+        function resetWindowPosition() {
+            // Reset to default position
+            state.windowPosition = { x: 100, y: 100 };
+            state.windowSize = { width: 450, height: 'auto' };
+            state.mode = 'full';
+            
+            updateUI();
+            saveState();
+            showOneliner('Window position reset');
+        }
+
+        // ============================================
+        // Event Listeners
+        // ============================================
+        function setupEventListeners() {
+            // Mode controls
+            modeToggle.addEventListener('click', switchMode);
+            minimizeBtn.addEventListener('click', toggleMinimize);
+            
+            // Action buttons
+            refreshBtn.addEventListener('click', refreshData);
+            resetBtn.addEventListener('click', resetTracking);
+            
+            // Minimized button
+            minimizedBtn.addEventListener('click', () => {
+                state.mode = 'full';
+                updateUI();
+                saveState();
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeydown);
+            
+            // Input changes
+            document.getElementById('privateKey').addEventListener('input', function() {
+                state.privateKey = this.value;
+                saveState();
+            });
+            
+            document.getElementById('userId').addEventListener('input', function() {
+                state.userId = this.value;
+                saveState();
+            });
+            
+            // Save state on unload
+            window.addEventListener('beforeunload', saveState);
+            
+            // Auto-save every 30 seconds
+            setInterval(saveState, 30000);
+        }
+
+        function handleKeydown(e) {
+            // 'R' key resets window position (only when not in input fields)
+            if ((e.key === 'r' || e.key === 'R') && !e.target.matches('input')) {
+                resetWindowPosition();
+            }
+            
+            // 'F5' refreshes data
+            if (e.key === 'F5') {
+                e.preventDefault();
+                refreshData();
+            }
+            
+            // 'Escape' minimizes window
+            if (e.key === 'Escape' && !e.target.matches('input')) {
+                toggleMinimize();
+            }
+            
+            // 'M' cycles modes
+            if ((e.key === 'm' || e.key === 'M') && !e.target.matches('input')) {
+                if (e.ctrlKey) {
+                    switchMode();
+                }
+            }
+        }
+
+        // ============================================
+        // Initialize
+        // ============================================
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
