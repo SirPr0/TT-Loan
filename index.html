@@ -856,20 +856,21 @@
             if (amount > 0 && !loanAddedThisSession) {
                 loanAddedThisSession = true;
                 
-                // Update current loan
+                // Reset all progress data for new loan
                 currentLoanAmount = amount;
-                
-                // Update original loan
                 originalLoanAmount = amount;
+                totalPaid = 0;  // Reset total paid for the new loan
+                todayPaid = 0;  // Reset today's payment for the new loan
+                hasTriggeredLoanPaid = false;  // Reset loan paid flag
                 
                 // Track this loan for storage card calculation
                 activeLoans = [index];
                 
-                // Reset loan paid flag since we're adding new loan
-                hasTriggeredLoanPaid = false;
-                
                 // Remove completed class from progress bar
                 document.getElementById('progressFill').classList.remove('completed');
+                
+                // Reset the progress bar width to 0%
+                document.getElementById('progressFill').style.width = '0%';
                 
                 // Save data
                 saveData();
@@ -1074,7 +1075,7 @@
             }
         }
 
-        // Check if loan is fully paid
+        // Check if loan is fully paid - UPDATED: Reset everything when progress reaches 100%
         function checkLoanPaid() {
             if (originalLoanAmount > 0 && !hasTriggeredLoanPaid) {
                 const progress = (totalPaid / originalLoanAmount) * 100;
@@ -1083,26 +1084,40 @@
                     // Store the storage cards reward before resetting
                     const earnedCards = totalStorageCardsReward;
                     
+                    // RESET EVERYTHING TO ZERO
+                    originalLoanAmount = 0;
+                    currentLoanAmount = 0;
+                    totalPaid = 0;  // Reset total paid to 0
+                    todayPaid = 0;  // Reset today's payment to 0
+                    hasTriggeredLoanPaid = true;
+                    activeLoans = [];
+                    totalStorageCardsReward = 0;
+                    
                     // Enable all preset buttons again
                     enableAllPresetButtons();
                     
-                    // Reset loan paid flag
-                    hasTriggeredLoanPaid = true;
+                    // Reset progress bar to 0%
+                    const progressFill = document.getElementById('progressFill');
+                    progressFill.classList.remove('completed');
+                    progressFill.style.width = '0%';
+                    
+                    // Update storage cards display to 0
+                    storageCardsAmount.textContent = '0';
                     
                     // Show loan paid popup if in game
                     if (isInGame && gameConnectionVerified) {
                         showLoanPaidPopup(earnedCards);
                     }
                     
-                    // Update progress bar
-                    document.getElementById('progressFill').classList.add('completed');
-                    
                     // Save the reset state
                     saveData();
                     
+                    // Update display
+                    updateDisplay();
+                    
                     // Show notification
                     if (document.getElementById('notifications').checked) {
-                        showNotification(`Loan fully paid! You earned ${earnedCards} storage cards!`);
+                        showNotification(`Loan fully paid! You earned ${earnedCards} storage cards! Everything has been reset.`);
                     }
                 }
             }
@@ -1122,7 +1137,7 @@
                 window.parent.postMessage({ 
                     type: 'popup', 
                     title: 'Loan Paid', 
-                    text: `Congratulations! Your loan has been fully paid off!\nYou earned ${earnedCards} storage cards!` 
+                    text: `Congratulations! Your loan has been fully paid off!\nYou earned ${earnedCards} storage cards!\n\nAll loan data has been reset to zero.` 
                 }, '*');
             }, 600);
         }
@@ -1162,13 +1177,13 @@
                 remaining = currentLoanAmount;
             }
             
-            document.getElementById('progressFill').style.width = `${progress}%`;
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = `${progress}%`;
             document.getElementById('progressPercentage').textContent = `${progress.toFixed(1)}%`;
             document.getElementById('remainingLabel').textContent = `${formatter.format(remaining)} remaining`;
             document.getElementById('paidToday').textContent = `Today: ${formatter.format(todayPaid)}`;
             
             // Update progress bar color
-            const progressFill = document.getElementById('progressFill');
             if (progress >= 100 || currentLoanAmount <= 0) {
                 progressFill.classList.add('completed');
             } else {
@@ -1205,13 +1220,18 @@
             enableAllPresetButtons();
             
             // Reset progress bar
-            document.getElementById('progressFill').classList.remove('completed');
+            const progressFill = document.getElementById('progressFill');
+            progressFill.classList.remove('completed');
+            progressFill.style.width = '0%';
             
             // Update storage cards display
             storageCardsAmount.textContent = '0';
             
-            saveData();
+            // Update display
             updateDisplay();
+            
+            // Save reset state
+            saveData();
             
             showNotification('Loan data has been reset');
             
