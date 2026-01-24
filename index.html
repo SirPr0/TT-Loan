@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Floating Window */
+        #floatingWindow {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            width: 480px;
+            height: 420px;
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 8px;
+            color: #e0e0ff;
+            z-index: 10000;
+            overflow: hidden;
+            resize: both;
+            min-width: 400px;
+            min-height: 350px;
+            max-width: 700px;
+            max-height: 600px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+        }
+
+        /* Window Header */
+        .window-header {
+            height: 35px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .window-title i {
+            color: #4a6fa5;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: #a0a0c0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Window Content */
+        .window-content {
+            height: calc(100% - 35px);
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected {
+            background: #2ecc71;
+        }
+
+        .status-dot.disconnected {
+            background: #e74c3c;
+        }
+
+        .status-dot.loading {
+            background: #f39c12;
+        }
+
+        /* Loan Stats */
+        .loan-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            background: rgba(30, 30, 40, 0.7);
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .loan .stat-value {
+            color: #e74c3c;
+        }
+
+        .paid .stat-value {
+            color: #2ecc71;
+        }
+
+        /* Balances */
+        .balances {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 12px 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            height: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4a6fa5;
+            border-radius: 9px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .progress-fill.completed {
+            background: #2ecc71;
+        }
+
+        /* Storage Cards Reward */
+        .storage-reward {
+            background: rgba(30, 30, 40, 0.7);
+            border-radius: 6px;
+            padding: 8px 10px;
+            border: 1px solid rgba(100, 100, 150, 0.2);
+            margin-top: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .reward-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #a0a0c0;
+        }
+
+        .reward-value {
+            color: #f39c12;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* Loan Presets */
+        .loan-presets {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(100, 100, 150, 0.2);
+        }
+
+        .presets-title {
+            font-size: 0.75rem;
+            color: #a0a0c0;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .preset-btn {
+            padding: 5px 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 100, 150, 0.3);
+            border-radius: 4px;
+            color: #e0e0ff;
+            cursor: pointer;
+            font-size: 0.7rem;
+            text-align: center;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preset-btn:hover:not(:disabled) {
+            background: rgba(74, 111, 165, 0.3);
+            border-color: #4a6fa5;
+        }
+
+        .preset-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .preset-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: rgba(0, 0, 0, 0.3);
+            border-color: rgba(100, 100, 150, 0.3);
+        }
+
+        .preset-small {
+            font-size: 0.65rem;
+            opacity: 0.8;
+        }
+
+        /* Info Text */
+        .info-text {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            text-align: center;
+            margin-top: 8px;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 320px;
+            background: rgba(10, 10, 20, 0.95);
+            border-radius: 8px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+            padding: 12px;
+            z-index: 9999;
+            display: none;
+            color: white !important;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 12px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white !important;
+        }
+
+        .settings-option {
+            margin-bottom: 10px;
+            color: white !important;
+        }
+
+        .settings-option label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: white !important;
+        }
+
+        .settings-option input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* History Panel */
+        .history-panel {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            width: 380px;
+            height: 450px;
+            background: rgba(10, 10, 20, 0.95);
+            border-radius: 8px;
+            border: 1px solid rgba(80, 80, 120, 0.3);
+            padding: 12px;
+            z-index: 9999;
+            display: none;
+            color: white !important;
+            overflow: hidden;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(100, 100, 150, 0.3);
+        }
+
+        .history-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white !important;
+        }
+
+        .history-content {
+            height: calc(100% - 50px);
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .history-item {
+            background: rgba(30, 30, 40, 0.7);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(100, 100, 150, 0.2);
+            font-size: 0.8rem;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #4a6fa5;
+        }
+
+        .history-item-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.75rem;
+        }
+
+        .history-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(100, 100, 150, 0.1);
+        }
+
+        .history-detail-label {
+            color: #a0a0c0;
+        }
+
+        .history-detail-value {
+            font-weight: 600;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #a0a0c0;
+            font-style: italic;
+            padding: 20px;
+            font-size: 0.85rem;
+        }
+
+        /* Hide window content when collapsed */
+        .collapsed .window-content {
+            display: none;
+        }
+
+        .collapsed {
+            height: 35px !important;
+            min-height: 35px !important;
+        }
+
+        /* Scrollbar Styling */
+        .window-content::-webkit-scrollbar,
+        .history-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .window-content::-webkit-scrollbar-track,
+        .history-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+        }
+
+        .window-content::-webkit-scrollbar-thumb,
+        .history-content::-webkit-scrollbar-thumb {
+            background: rgba(100, 100, 150, 0.4);
+            border-radius: 2px;
+        }
+
+        /* Resize Handle */
+        #floatingWindow::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(135deg, transparent 50%, rgba(100, 100, 150, 0.4) 50%);
+            cursor: se-resize;
+        }
+
+        /* Simple button for settings panel */
+        .panel-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 8px;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .panel-btn:hover {
+            background: #166088;
+        }
+
+        .close-history-btn {
+            background: none;
+            border: none;
+            color: #a0a0c0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            font-size: 1rem;
+        }
+
+        .close-history-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Stats Summary */
+        .stats-summary {
+            font-size: 0.7rem;
+            color: #a0a0c0;
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Card Count Display */
+        .card-count-display {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #4a6fa5;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .card-count-display.zero {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div id="floatingWindow">
+        <div class="window-header" id="windowHeader">
+            <div class="window-title">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>Loan Tracker</span>
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot disconnected" id="statusDot"></div>
+                    <span id="statusText">Load it in-game F1</span>
+                </div>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn" id="settingsBtn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="control-btn" id="collapseBtn" title="Collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="window-content" id="windowContent">
+            <div class="loan-stats">
+                <div class="stat-card loan">
+                    <div class="stat-label">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Loan Balance</span>
+                    </div>
+                    <div class="stat-value" id="loanBalance">$0</div>
+                </div>
+                
+                <div class="stat-card paid">
+                    <div class="stat-label">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Total Paid</span>
+                    </div>
+                    <div class="stat-value" id="totalPaid">$0</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Loan Progress</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <div class="stats-summary">
+                    <span id="remainingLabel">$0 remaining</span>
+                    <span id="paidToday">Today: $0</span>
+                </div>
+                
+                <!-- Storage Cards Reward Display -->
+                <div class="storage-reward" id="storageReward">
+                    <div class="reward-label">
+                        <i class="fas fa-box"></i>
+                        <span>Storage cards on completion:</span>
+                    </div>
+                    <div class="reward-value" id="storageCardsAmount">0</div>
+                </div>
+            </div>
+
+            <div class="balances">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-wallet"></i>
+                        <span>Wallet</span>
+                    </div>
+                    <div class="stat-value" id="walletBalance">$0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <i class="fas fa-university"></i>
+                        <span>Bank</span>
+                    </div>
+                    <div class="stat-value" id="bankBalance">$0</div>
+                </div>
+            </div>
+
+            <div class="info-text" id="dataSourceInfo">
+                <i class="fas fa-info-circle"></i>
+                <span>Load via F1 menu in-game for live tracking</span>
+            </div>
+
+            <div class="loan-presets">
+                <div class="presets-title">
+                    <i class="fas fa-bolt"></i>
+                    <span>Loan Presets (Storage cards shown below each)</span>
+                </div>
+                <div class="presets-grid" id="presetsGrid">
+                    <!-- Preset buttons will be added by JavaScript -->
+                </div>
+                <div class="info-text">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Cards shown are earned upon loan completion</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <h3><i class="fas fa-cog"></i> Settings</h3>
+        
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="showBalances" checked>
+                <span>Show Wallet/Bank</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="autoLoanCalc" checked>
+                <span>Auto-calculate loan payments</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="notifications" checked>
+                <span>Enable Notifications</span>
+            </label>
+        </div>
+
+        <div class="settings-option">
+            <label>
+                <input type="checkbox" id="trackDeposits" checked>
+                <span>Track bank deposits for loan payments</span>
+            </label>
+        </div>
+
+        <button class="panel-btn" id="historyBtn">
+            <i class="fas fa-history"></i>
+            View Loan History
+        </button>
+
+        <button class="panel-btn" id="resetPositionBtn">
+            <i class="fas fa-undo"></i>
+            Reset Position (R Key)
+        </button>
+
+        <button class="panel-btn" id="resetLoanBtn" style="background: #e74c3c;">
+            <i class="fas fa-trash"></i>
+            Reset Loan Data
+        </button>
+
+        <div style="margin-top: 12px; font-size: 0.75rem; color: #ffffff; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+            <p><strong>Loan Calculation:</strong></p>
+            <p>• Takes 50% of your income/sales</p>
+            <p>• When you earn money, 50% goes to loan, 50% goes to wallet</p>
+            <p>• Loan balance updates automatically</p>
+            <p><strong>Storage Cards:</strong></p>
+            <p>• Cards are earned when loan is fully paid</p>
+            <p>• Higher loans give more storage cards</p>
+            <p>• Cards shown are earned upon completion</p>
+        </div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <h3><i class="fas fa-history"></i> Loan History</h3>
+            <button class="close-history-btn" id="closeHistoryBtn" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="history-content" id="historyContent">
+            <!-- History items will be added by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Loan Presets with storage card rewards - UPDATED with proper M/K formatting
+        const LOAN_PRESETS = [
+            { 
+                name: '50K', 
+                displayName: 'Beginner Loan',
+                displayAmount: 50000, 
+                actualAmount: 62500, 
+                displayAmountFormatted: '62.5K',
+                actualAmountFormatted: '62.5K',
+                storageCards: 1,
+                requirement: 'Must be free of debt'
+            },
+            { 
+                name: '150K', 
+                displayName: 'Starter Loan',
+                displayAmount: 150000, 
+                actualAmount: 187500, 
+                displayAmountFormatted: '187.5K',
+                actualAmountFormatted: '187.5K',
+                storageCards: 3,
+                requirement: 'Player Level 5'
+            },
+            { 
+                name: '250K', 
+                displayName: 'Discord Loan',
+                displayAmount: 250000, 
+                actualAmount: 312500, 
+                displayAmountFormatted: '312.5K',
+                actualAmountFormatted: '312.5K',
+                storageCards: 5,
+                requirement: 'Must link Discord account'
+            },
+            { 
+                name: '1M', 
+                displayName: 'Millionaire Loan',
+                displayAmount: 1000000, 
+                actualAmount: 1250000, 
+                displayAmountFormatted: '1.25M',
+                actualAmountFormatted: '1.25M',
+                storageCards: 20,
+                requirement: 'Player Level 10'
+            },
+            { 
+                name: '2.5M', 
+                displayName: 'Upcoming Tycoon',
+                displayAmount: 2500000, 
+                actualAmount: 3120000, 
+                displayAmountFormatted: '3.12M',
+                actualAmountFormatted: '3.12M',
+                storageCards: 50,
+                requirement: 'Player Level 15'
+            },
+            { 
+                name: '10M', 
+                displayName: 'Medium Loan',
+                displayAmount: 10000000, 
+                actualAmount: 12500000, 
+                displayAmountFormatted: '12.5M',
+                actualAmountFormatted: '12.5M',
+                storageCards: 200,
+                requirement: 'Player Level 25'
+            },
+            { 
+                name: '25M', 
+                displayName: 'Heavy Loan',
+                displayAmount: 25000000, 
+                actualAmount: 31250000, 
+                displayAmountFormatted: '31.25M',
+                actualAmountFormatted: '31.25M',
+                storageCards: 500,
+                requirement: 'Player Level 30'
+            },
+            { 
+                name: '50M', 
+                displayName: 'Long-term Loan',
+                displayAmount: 50000000, 
+                actualAmount: 62500000, 
+                displayAmountFormatted: '62.5M',
+                actualAmountFormatted: '62.5M',
+                storageCards: 1000,
+                requirement: 'Player Level 50'
+            },
+            { 
+                name: '100M', 
+                displayName: 'Sellout Loan',
+                displayAmount: 100000000, 
+                actualAmount: 125000000, 
+                displayAmountFormatted: '125M',
+                actualAmountFormatted: '125M',
+                storageCards: 2000,
+                requirement: 'Player Level 75'
+            },
+            { 
+                name: '150M', 
+                displayName: 'Business Tycoon',
+                displayAmount: 150000000, 
+                actualAmount: 187500000, 
+                displayAmountFormatted: '187.5M',
+                actualAmountFormatted: '187.5M',
+                storageCards: 3000,
+                requirement: 'Player Level 100'
+            }
+        ];
+
+        // Helper function to format currency with M/K
+        function formatCurrencyWithMK(amount) {
+            if (amount >= 1000000) {
+                return '$' + (amount / 1000000).toFixed(1) + 'M';
+            } else if (amount >= 1000) {
+                return '$' + (amount / 1000).toFixed(1) + 'K';
+            } else {
+                return '$' + amount.toLocaleString();
+            }
+        }
+
+        // Helper function to format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // State variables
+        let originalLoanAmount = 0;
+        let currentLoanAmount = 0;
+        let totalPaid = 0;
+        let todayPaid = 0;
+        let isDragging = false;
+        let isCollapsed = false;
+        let dragOffset = { x: 0, y: 0 };
+        let gameData = {};
+        let isInGame = false;
+        let lastWallet = 0;
+        let lastBank = 0;
+        let lastTotalMoney = 0;
+        let lastUpdateTime = Date.now();
+        let todayResetTime = 0;
+        let hasTriggeredLoanPaid = false;
+        let dataRefreshInterval = null;
+        let gameConnectionVerified = false;
+        let lastReceivedWallet = 0;
+        let lastReceivedBank = 0;
+        let activeLoans = []; // Track which loans are active
+        let totalStorageCardsReward = 0;
+        let loanPercentage = 50; // Fixed at 50%
+        let hasActiveLoan = false; // Track if any loan is active
+        let loanAddedThisSession = false; // Track if loan was added in current session
+        let lastActualWallet = 0; // Track the actual wallet amount we see
+        let loanHistory = []; // Array to store loan history
+
+        // DOM Elements
+        const floatingWindow = document.getElementById('floatingWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        const windowContent = document.getElementById('windowContent');
+        const collapseBtn = document.getElementById('collapseBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const historyPanel = document.getElementById('historyPanel');
+        const historyBtn = document.getElementById('historyBtn');
+        const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+        const historyContent = document.getElementById('historyContent');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const resetPositionBtn = document.getElementById('resetPositionBtn');
+        const resetLoanBtn = document.getElementById('resetLoanBtn');
+        const dataSourceInfo = document.getElementById('dataSourceInfo');
+        const presetsGrid = document.getElementById('presetsGrid');
+        const storageCardsAmount = document.getElementById('storageCardsAmount');
+
+        // Initialize
+        function init() {
+            // Load saved settings
+            loadSettings();
+            
+            // Set up control buttons
+            collapseBtn.addEventListener('click', toggleCollapse);
+            settingsBtn.addEventListener('click', toggleSettings);
+            resetPositionBtn.addEventListener('click', resetWindowPosition);
+            resetLoanBtn.addEventListener('click', resetLoanData);
+            historyBtn.addEventListener('click', showHistory);
+            closeHistoryBtn.addEventListener('click', closeHistory);
+            
+            // Set up settings checkboxes
+            document.getElementById('showBalances').addEventListener('change', toggleShowBalances);
+            document.getElementById('autoLoanCalc').addEventListener('change', toggleAutoLoanCalc);
+            document.getElementById('notifications').addEventListener('change', toggleNotifications);
+            document.getElementById('trackDeposits').addEventListener('change', toggleTrackDeposits);
+            
+            // Close settings panel when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsPanel.style.display = 'none';
+                }
+                if (!historyPanel.contains(e.target) && !historyBtn.contains(e.target) && !settingsPanel.contains(e.target)) {
+                    historyPanel.style.display = 'none';
+                }
+            });
+
+            // Add R key listener for resetting position
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    resetWindowPosition();
+                }
+                if (e.key === 'Escape') {
+                    settingsPanel.style.display = 'none';
+                    historyPanel.style.display = 'none';
+                }
+            });
+
+            // Setup message listener for in-game data
+            window.addEventListener('message', handleGameMessage);
+
+            // Initialize presets
+            initializePresets();
+
+            // Show initial data
+            updateDisplay();
+            
+            // Check for new day
+            checkDayReset();
+            
+            // Start data refresh interval
+            startDataRefresh();
+            
+            // Update preset buttons state
+            updatePresetButtonsState();
+            
+            // Load history
+            loadHistory();
+        }
+
+        // Update preset buttons enabled/disabled state
+        function updatePresetButtonsState() {
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            hasActiveLoan = currentLoanAmount > 0;
+            
+            presetButtons.forEach(button => {
+                button.disabled = hasActiveLoan;
+            });
+        }
+
+        // Start data refresh interval
+        function startDataRefresh() {
+            if (dataRefreshInterval) {
+                clearInterval(dataRefreshInterval);
+            }
+            
+            dataRefreshInterval = setInterval(() => {
+                if (isInGame && gameConnectionVerified) {
+                    // Request data from game every 500ms
+                    requestGameData();
+                }
+            }, 500);
+        }
+
+        // Request game data
+        function requestGameData() {
+            if (typeof window.parent !== 'undefined') {
+                // ✅ OPTIMIZED: Use getNamedData instead of getData
+                // Only request wallet and bank data (not all game data)
+                window.parent.postMessage({ 
+                    type: 'getNamedData',
+                    keys: ['wallet', 'bank']
+                }, '*');
+            }
+        }
+
+        // Initialize preset buttons
+        function initializePresets() {
+            presetsGrid.innerHTML = '';
+            
+            LOAN_PRESETS.forEach((loan, index) => {
+                const button = document.createElement('button');
+                button.className = 'preset-btn';
+                button.innerHTML = `${loan.name}<br><span class="preset-small">(${loan.actualAmountFormatted})<br>${loan.storageCards} cards</span>`;
+                button.title = `${loan.displayName}\n${formatCurrency(loan.displayAmount)}\nRequires: ${loan.requirement}\nReward on completion: ${loan.storageCards} storage cards\nActual amount to pay: ${formatCurrency(loan.actualAmount)}`;
+                button.dataset.index = index;
+                button.dataset.amount = loan.actualAmount;
+                button.dataset.display = loan.displayAmount;
+                button.dataset.storageCards = loan.storageCards;
+                
+                button.addEventListener('click', (e) => {
+                    // Prevent double click
+                    if (button.disabled) return;
+                    
+                    // Disable all buttons immediately
+                    disableAllPresetButtons();
+                    
+                    // Add the loan
+                    addLoan(loan.actualAmount, loan.displayAmount, index);
+                });
+                
+                presetsGrid.appendChild(button);
+            });
+            
+            // Calculate initial storage cards reward
+            calculateStorageCardsReward();
+        }
+
+        // Disable all preset buttons
+        function disableAllPresetButtons() {
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            presetButtons.forEach(button => {
+                button.disabled = true;
+            });
+            hasActiveLoan = true;
+        }
+
+        // Enable all preset buttons
+        function enableAllPresetButtons() {
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            presetButtons.forEach(button => {
+                button.disabled = false;
+            });
+            hasActiveLoan = false;
+            loanAddedThisSession = false;
+        }
+
+        // Add loan from preset
+        function addLoan(amount, displayAmount, index) {
+            if (amount > 0 && !loanAddedThisSession) {
+                loanAddedThisSession = true;
+                
+                // Reset all progress data for new loan
+                currentLoanAmount = amount;
+                originalLoanAmount = amount;
+                totalPaid = 0;  // Reset total paid for the new loan
+                todayPaid = 0;  // Reset today's payment for the new loan
+                hasTriggeredLoanPaid = false;  // Reset loan paid flag
+                
+                // Track this loan for storage card calculation
+                activeLoans = [index];
+                
+                // Remove completed class from progress bar
+                document.getElementById('progressFill').classList.remove('completed');
+                
+                // Reset the progress bar width to 0%
+                document.getElementById('progressFill').style.width = '0%';
+                
+                // Save data
+                saveData();
+                
+                // Calculate storage cards reward
+                calculateStorageCardsReward();
+                
+                // Update display
+                updateDisplay();
+                
+                // Show notification
+                if (document.getElementById('notifications').checked) {
+                    const formatter = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    showNotification(`Added ${LOAN_PRESETS[index].displayName}: ${formatter.format(displayAmount || amount)}\nWill earn ${LOAN_PRESETS[index].storageCards} storage cards upon completion.`);
+                }
+            }
+        }
+
+        // Calculate total storage cards reward from active loans
+        function calculateStorageCardsReward() {
+            totalStorageCardsReward = 0;
+            activeLoans.forEach(index => {
+                totalStorageCardsReward += LOAN_PRESETS[index].storageCards;
+            });
+            
+            // Update display
+            storageCardsAmount.textContent = totalStorageCardsReward.toLocaleString();
+        }
+
+        // Handle messages from game client
+        function handleGameMessage(event) {
+            // Check if message is from the game
+            if (event.data && typeof event.data === 'object') {
+                // Check for game connection
+                if (event.data.fromTycoonScript === true) {
+                    isInGame = true;
+                    gameConnectionVerified = true;
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'In-Game';
+                    updateDataSourceInfo();
+                }
+                
+                // Process game data
+                processGameData(event.data);
+            }
+        }
+
+        // Process game data and calculate loan payments
+        function processGameData(newData) {
+            const now = Date.now();
+            
+            // Extract wallet and bank data
+            let wallet = 0;
+            let bank = 0;
+            
+            // Direct property check
+            if (newData.wallet !== undefined) {
+                wallet = parseFloat(newData.wallet);
+            }
+            if (newData.bank !== undefined) {
+                bank = parseFloat(newData.bank);
+            }
+            
+            // Fallback to recursive search if not found directly
+            if (wallet === 0) {
+                wallet = findValueInObject(newData, 'wallet');
+            }
+            if (bank === 0) {
+                bank = findValueInObject(newData, 'bank');
+            }
+            
+            // Store the last received values
+            if (wallet > 0) lastReceivedWallet = wallet;
+            if (bank > 0) lastReceivedBank = bank;
+            
+            // If no wallet/bank found in this update, use last known values
+            if (wallet === 0 && lastReceivedWallet > 0) wallet = lastReceivedWallet;
+            if (bank === 0 && lastReceivedBank > 0) bank = lastReceivedBank;
+            
+            // Format and display wallet/bank
+            document.getElementById('walletBalance').textContent = formatCurrency(wallet);
+            document.getElementById('bankBalance').textContent = formatCurrency(bank);
+            
+            // Store for loan calculation
+            gameData.wallet = wallet;
+            gameData.bank = bank;
+            
+            // Calculate loan payments if auto-calc is enabled and we have loan
+            if (document.getElementById('autoLoanCalc').checked && currentLoanAmount > 0) {
+                calculateLoanPayments(wallet, bank, now);
+            }
+            
+            // Update data source info
+            updateDataSourceInfo();
+            
+            // Check if loan is paid off
+            checkLoanPaid();
+        }
+
+        // Helper function to find a value in an object recursively
+        function findValueInObject(obj, key) {
+            if (!obj || typeof obj !== 'object') return 0;
+            
+            // Check if this object has the key
+            if (obj.hasOwnProperty(key)) {
+                const value = parseFloat(obj[key]);
+                if (!isNaN(value)) return value;
+            }
+            
+            // Search in nested objects
+            for (const prop in obj) {
+                if (obj.hasOwnProperty(prop) && typeof obj[prop] === 'object') {
+                    const result = findValueInObject(obj[prop], key);
+                    if (result > 0) return result;
+                }
+            }
+            return 0;
+        }
+
+        // Calculate loan payments based on income - FIXED: 50% to loan, 50% to wallet
+        function calculateLoanPayments(wallet, bank, timestamp) {
+            const currentTotal = wallet + bank;
+            
+            // Initialize last values if this is the first update
+            if (lastWallet === 0) {
+                lastWallet = wallet;
+                lastBank = bank;
+                lastTotalMoney = currentTotal;
+                lastUpdateTime = timestamp;
+                lastActualWallet = wallet;
+                return;
+            }
+            
+            // Calculate time since last update
+            const timeDiff = timestamp - lastUpdateTime;
+            
+            // Only process if reasonable time has passed (more than 500ms)
+            if (timeDiff > 500) {
+                let walletIncrease = wallet - lastActualWallet;
+                
+                // Only process positive wallet increase (money earned)
+                if (walletIncrease > 0) {
+                    // CRITICAL FIX: When you earn money, only 50% goes to loan
+                    // The wallet increase we see is the 50% that goes to wallet
+                    // So the loan payment should be the same amount (50% of total)
+                    
+                    // Simple fix: Loan payment = wallet increase
+                    let loanPayment = walletIncrease;
+                    
+                    // Debug log
+                    console.log(`Wallet increased by: $${walletIncrease.toLocaleString()}`);
+                    console.log(`Total earned: $${(walletIncrease * 2).toLocaleString()}`);
+                    console.log(`Loan payment (50%): $${loanPayment.toLocaleString()}`);
+                    
+                    // Update loan balance
+                    const oldLoanAmount = currentLoanAmount;
+                    currentLoanAmount = Math.max(0, currentLoanAmount - loanPayment);
+                    
+                    // Update total paid
+                    const actualPayment = oldLoanAmount - currentLoanAmount;
+                    if (actualPayment > 0) {
+                        totalPaid += actualPayment;
+                        todayPaid += actualPayment;
+                        
+                        // Save data
+                        saveData();
+                        
+                        // Update display
+                        updateDisplay();
+                        
+                        // Show notification for significant payments
+                        if (document.getElementById('notifications').checked && actualPayment >= 1000) {
+                            showNotification(`Loan payment: ${formatCurrency(actualPayment)} (50% of ${formatCurrency(walletIncrease * 2)} earned)`);
+                        }
+                    }
+                }
+                
+                // Update last values
+                lastWallet = wallet;
+                lastBank = bank;
+                lastTotalMoney = currentTotal;
+                lastUpdateTime = timestamp;
+                lastActualWallet = wallet;
+            }
+        }
+
+        // Check if loan is fully paid - UPDATED: Reset everything when progress reaches 100%
+        function checkLoanPaid() {
+            if (originalLoanAmount > 0 && !hasTriggeredLoanPaid) {
+                const progress = (totalPaid / originalLoanAmount) * 100;
+                
+                if (currentLoanAmount <= 0 || progress >= 100) {
+                    // Store the storage cards reward before resetting
+                    const earnedCards = totalStorageCardsReward;
+                    const loanIndex = activeLoans.length > 0 ? activeLoans[0] : -1;
+                    const loanName = loanIndex >= 0 ? LOAN_PRESETS[loanIndex].displayName : 'Unknown Loan';
+                    const loanAmount = originalLoanAmount;
+                    
+                    // Add to history
+                    addToHistory(loanName, loanAmount, earnedCards);
+                    
+                    // RESET EVERYTHING TO ZERO
+                    originalLoanAmount = 0;
+                    currentLoanAmount = 0;
+                    totalPaid = 0;  // Reset total paid to 0
+                    todayPaid = 0;  // Reset today's payment to 0
+                    hasTriggeredLoanPaid = true;
+                    activeLoans = [];
+                    totalStorageCardsReward = 0;
+                    
+                    // Enable all preset buttons again
+                    enableAllPresetButtons();
+                    
+                    // Reset progress bar to 0%
+                    const progressFill = document.getElementById('progressFill');
+                    progressFill.classList.remove('completed');
+                    progressFill.style.width = '0%';
+                    
+                    // Update storage cards display to 0
+                    storageCardsAmount.textContent = '0';
+                    
+                    // Show loan paid popup if in game
+                    if (isInGame && gameConnectionVerified) {
+                        showLoanPaidPopup(earnedCards);
+                    }
+                    
+                    // Save the reset state
+                    saveData();
+                    
+                    // Update display
+                    updateDisplay();
+                    
+                    // Show notification
+                    if (document.getElementById('notifications').checked) {
+                        showNotification(`Loan fully paid! You earned ${earnedCards} storage cards! Everything has been reset.`);
+                    }
+                }
+            }
+        }
+
+        // Add loan to history
+        function addToHistory(loanName, loanAmount, storageCards) {
+            const historyEntry = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                loanName: loanName,
+                loanAmount: loanAmount,
+                displayAmountFormatted: formatCurrencyWithMK(loanAmount),
+                storageCards: storageCards
+            };
+            
+            // Add to beginning of array (most recent first)
+            loanHistory.unshift(historyEntry);
+            
+            // Keep only last 50 entries to prevent storage overflow
+            if (loanHistory.length > 50) {
+                loanHistory = loanHistory.slice(0, 50);
+            }
+            
+            // Save history to localStorage
+            saveHistory();
+            
+            // Update history display if panel is open
+            if (historyPanel.style.display === 'block') {
+                updateHistoryDisplay();
+            }
+        }
+
+        // Load history from localStorage
+        function loadHistory() {
+            const savedHistory = localStorage.getItem('loanHistory');
+            if (savedHistory) {
+                try {
+                    loanHistory = JSON.parse(savedHistory);
+                } catch (e) {
+                    console.error('Error loading history:', e);
+                    loanHistory = [];
+                }
+            } else {
+                loanHistory = [];
+            }
+        }
+
+        // Save history to localStorage
+        function saveHistory() {
+            localStorage.setItem('loanHistory', JSON.stringify(loanHistory));
+        }
+
+        // Show history panel
+        function showHistory() {
+            // Close settings panel
+            settingsPanel.style.display = 'none';
+            
+            // Update history display
+            updateHistoryDisplay();
+            
+            // Show history panel
+            historyPanel.style.display = 'block';
+        }
+
+        // Close history panel
+        function closeHistory() {
+            historyPanel.style.display = 'none';
+        }
+
+        // Update history display
+        function updateHistoryDisplay() {
+            historyContent.innerHTML = '';
+            
+            if (loanHistory.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'history-empty';
+                emptyMessage.textContent = 'No loan history yet. Complete your first loan to see it here!';
+                historyContent.appendChild(emptyMessage);
+                return;
+            }
+            
+            loanHistory.forEach((entry, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                historyItem.innerHTML = `
+                    <div class="history-item-header">
+                        <span>${entry.loanName}</span>
+                        <span>${entry.date}</span>
+                    </div>
+                    <div class="history-item-details">
+                        <div class="history-detail">
+                            <span class="history-detail-label">Loan Amount:</span>
+                            <span class="history-detail-value">${entry.displayAmountFormatted}</span>
+                        </div>
+                        <div class="history-detail">
+                            <span class="history-detail-label">Storage Cards:</span>
+                            <span class="history-detail-value">${entry.storageCards}</span>
+                        </div>
+                        <div class="history-detail">
+                            <span class="history-detail-label">Status:</span>
+                            <span class="history-detail-value" style="color: #2ecc71;">Completed</span>
+                        </div>
+                        <div class="history-detail">
+                            <span class="history-detail-label">ID:</span>
+                            <span class="history-detail-value">#${entry.id.toString().slice(-6)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                historyContent.appendChild(historyItem);
+            });
+        }
+
+        // Show loan paid popup and close menus
+        function showLoanPaidPopup(earnedCards) {
+            // Send forceMenuBack 5 times
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    window.parent.postMessage({ type: 'forceMenuBack' }, '*');
+                }, i * 100);
+            }
+            
+            // Show popup message
+            setTimeout(() => {
+                window.parent.postMessage({ 
+                    type: 'popup', 
+                    title: 'Loan Paid', 
+                    text: `Congratulations! Your loan has been fully paid off!\nYou earned ${earnedCards} storage cards!` 
+                }, '*');
+            }, 600);
+        }
+
+        // Update data source info
+        function updateDataSourceInfo() {
+            if (isInGame && gameConnectionVerified) {
+                dataSourceInfo.innerHTML = '<i class="fas fa-bolt"></i> <span>Wallet/Bank: Live | Loan: Auto-tracked from income</span>';
+                dataSourceInfo.style.color = '#2ecc71';
+            } else {
+                dataSourceInfo.innerHTML = '<i class="fas fa-info-circle"></i> <span>Load via F1 menu in-game for live tracking</span>';
+                dataSourceInfo.style.color = '#f39c12';
+            }
+        }
+
+        // Update all displays
+        function updateDisplay() {
+            // Update loan balance
+            document.getElementById('loanBalance').textContent = formatCurrency(currentLoanAmount);
+            
+            // Update total paid
+            document.getElementById('totalPaid').textContent = formatCurrency(totalPaid);
+            
+            // Calculate and update progress
+            let progress = 0;
+            let remaining = 0;
+            
+            if (originalLoanAmount > 0) {
+                progress = Math.min(100, (totalPaid / originalLoanAmount) * 100);
+                remaining = currentLoanAmount;
+            }
+            
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = `${progress}%`;
+            document.getElementById('progressPercentage').textContent = `${progress.toFixed(1)}%`;
+            document.getElementById('remainingLabel').textContent = `${formatCurrency(remaining)} remaining`;
+            document.getElementById('paidToday').textContent = `Today: ${formatCurrency(todayPaid)}`;
+            
+            // Update progress bar color
+            if (progress >= 100 || currentLoanAmount <= 0) {
+                progressFill.classList.add('completed');
+            } else {
+                progressFill.classList.remove('completed');
+            }
+        }
+
+        // Check if it's a new day and reset today's payment
+        function checkDayReset() {
+            const now = new Date();
+            const today = now.toDateString();
+            const lastReset = localStorage.getItem('todayReset');
+            
+            if (lastReset !== today) {
+                todayPaid = 0;
+                localStorage.setItem('todayReset', today);
+                localStorage.setItem('todayPaid', '0');
+                updateDisplay();
+            }
+        }
+
+        // Reset loan data
+        function resetLoanData() {
+            // Reset all loan data
+            originalLoanAmount = 0;
+            currentLoanAmount = 0;
+            totalPaid = 0;
+            todayPaid = 0;
+            hasTriggeredLoanPaid = false;
+            activeLoans = [];
+            totalStorageCardsReward = 0;
+            
+            // Enable all preset buttons
+            enableAllPresetButtons();
+            
+            // Reset progress bar
+            const progressFill = document.getElementById('progressFill');
+            progressFill.classList.remove('completed');
+            progressFill.style.width = '0%';
+            
+            // Update storage cards display
+            storageCardsAmount.textContent = '0';
+            
+            // Update display
+            updateDisplay();
+            
+            // Save reset state
+            saveData();
+            
+            showNotification('Loan data has been reset');
+            
+            // Close settings panel
+            settingsPanel.style.display = 'none';
+        }
+
+        // Save data
+        function saveData() {
+            localStorage.setItem('originalLoanAmount', originalLoanAmount.toString());
+            localStorage.setItem('currentLoanAmount', currentLoanAmount.toString());
+            localStorage.setItem('totalPaid', totalPaid.toString());
+            localStorage.setItem('todayPaid', todayPaid.toString());
+            localStorage.setItem('hasTriggeredLoanPaid', hasTriggeredLoanPaid.toString());
+            localStorage.setItem('activeLoans', JSON.stringify(activeLoans));
+        }
+
+        // Load settings
+        function loadSettings() {
+            // Load window position
+            loadWindowPosition();
+            
+            // Load loan data
+            originalLoanAmount = parseFloat(localStorage.getItem('originalLoanAmount') || 0);
+            currentLoanAmount = parseFloat(localStorage.getItem('currentLoanAmount') || 0);
+            totalPaid = parseFloat(localStorage.getItem('totalPaid') || 0);
+            todayPaid = parseFloat(localStorage.getItem('todayPaid') || 0);
+            hasTriggeredLoanPaid = localStorage.getItem('hasTriggeredLoanPaid') === 'true';
+            
+            // Load active loans
+            const savedActiveLoans = localStorage.getItem('activeLoans');
+            if (savedActiveLoans) {
+                activeLoans = JSON.parse(savedActiveLoans);
+            }
+            
+            // Check day reset
+            checkDayReset();
+            
+            // Load settings
+            const showBalances = localStorage.getItem('showBalances');
+            const autoLoanCalc = localStorage.getItem('autoLoanCalc');
+            const notifications = localStorage.getItem('notifications');
+            const trackDeposits = localStorage.getItem('trackDeposits');
+            
+            document.getElementById('showBalances').checked = showBalances !== 'false';
+            document.getElementById('autoLoanCalc').checked = autoLoanCalc !== 'false';
+            document.getElementById('notifications').checked = notifications !== 'false';
+            document.getElementById('trackDeposits').checked = trackDeposits !== 'false';
+            
+            // Apply settings
+            if (showBalances === 'false') {
+                document.querySelector('.balances').style.display = 'none';
+            }
+            
+            // Check if we have an active loan
+            if (currentLoanAmount > 0) {
+                disableAllPresetButtons();
+                loanAddedThisSession = true;
+            } else {
+                enableAllPresetButtons();
+                loanAddedThisSession = false;
+            }
+            
+            // Calculate and display storage cards reward
+            calculateStorageCardsReward();
+            
+            // Update display
+            updateDisplay();
+        }
+
+        // Settings toggles
+        function toggleTrackDeposits(e) {
+            localStorage.setItem('trackDeposits', e.target.checked);
+        }
+
+        // Drag functionality
+        function startDrag(e) {
+            if (e.target.closest('.control-btn')) return;
+            
+            isDragging = true;
+            const rect = floatingWindow.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            
+            floatingWindow.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            floatingWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+            floatingWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            floatingWindow.style.cursor = 'default';
+            saveWindowPosition();
+        }
+
+        // Save window position and size
+        function saveWindowPosition() {
+            const rect = floatingWindow.getBoundingClientRect();
+            localStorage.setItem('windowX', rect.left);
+            localStorage.setItem('windowY', rect.top);
+            localStorage.setItem('windowWidth', rect.width);
+            localStorage.setItem('windowHeight', rect.height);
+        }
+
+        // Load window position and size
+        function loadWindowPosition() {
+            const x = localStorage.getItem('windowX');
+            const y = localStorage.getItem('windowY');
+            const width = localStorage.getItem('windowWidth');
+            const height = localStorage.getItem('windowHeight');
+            
+            if (x && y) {
+                floatingWindow.style.left = x + 'px';
+                floatingWindow.style.top = y + 'px';
+            }
+            
+            if (width && height) {
+                floatingWindow.style.width = width + 'px';
+                floatingWindow.style.height = height + 'px';
+            }
+        }
+
+        // Reset window position
+        function resetWindowPosition() {
+            floatingWindow.style.left = '50px';
+            floatingWindow.style.top = '50px';
+            floatingWindow.style.width = '480px';
+            floatingWindow.style.height = '420px';
+            
+            localStorage.removeItem('windowX');
+            localStorage.removeItem('windowY');
+            localStorage.removeItem('windowWidth');
+            localStorage.removeItem('windowHeight');
+            
+            showNotification('Window position reset');
+        }
+
+        // Toggle collapse
+        function toggleCollapse() {
+            isCollapsed = !isCollapsed;
+            floatingWindow.classList.toggle('collapsed');
+            collapseBtn.innerHTML = isCollapsed ? 
+                '<i class="fas fa-plus"></i>' : 
+                '<i class="fas fa-minus"></i>';
+            collapseBtn.title = isCollapsed ? 'Expand' : 'Collapse';
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            settingsPanel.style.display = 
+                settingsPanel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Other settings toggles
+        function toggleShowBalances(e) {
+            localStorage.setItem('showBalances', e.target.checked);
+            document.querySelector('.balances').style.display = e.target.checked ? 'grid' : 'none';
+        }
+
+        function toggleAutoLoanCalc(e) {
+            localStorage.setItem('autoLoanCalc', e.target.checked);
+        }
+
+        function toggleNotifications(e) {
+            localStorage.setItem('notifications', e.target.checked.toString());
+        }
+
+        // Show notification
+        function showNotification(message, isError = false) {
+            if (!document.getElementById('notifications').checked && !isError) return;
+            
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 8px 12px;
+                background: ${isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(30, 30, 40, 0.9)'};
+                color: white;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                z-index: 10001;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Set up drag event listeners
+        windowHeader.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
+
+        // Save window position on resize
+        floatingWindow.addEventListener('mouseup', saveWindowPosition);
+
+        // Check for new day every hour
+        setInterval(checkDayReset, 3600000);
+    </script>
+</body>
+</html>
